@@ -56,6 +56,10 @@ button.primary{background:var(--glow);border-color:var(--glow);color:#1a2410;fon
 .big.sel{border-color:var(--glow);background:rgba(232,244,106,.18)}
 .big.right{border-color:var(--ok);background:rgba(127,214,138,.22)}
 .big.wrong{border-color:var(--bad);background:rgba(240,101,90,.22)}
+.big{position:relative}.big.right::after,.big.wrong::after{position:absolute;top:-10px;right:-6px;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#0d1726}
+.big.right::after{content:'✓';background:var(--ok)}.big.wrong::after{content:'✗';background:var(--bad);color:#fff}
+.seq button.right::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;color:#0d1726;background:var(--ok);border-radius:50%}
+.qcard .hint{font-size:18px;color:var(--glow);font-weight:700}
 .big:disabled{opacity:.75;cursor:default}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
@@ -97,20 +101,21 @@ svg{width:100%;height:auto;display:block}
   <div class="panel">
     <h3>第一段　穿過樹枝（8 題）</h3>
     <ul class="steps">
-      <li>樹枝的<span class="hl">缺口會上下移動</span>。</li>
-      <li>看準時機<span class="hl">點一下畫面</span>，螢火蟲就起飛。</li>
-      <li>螢火蟲要飛一小段才到樹枝，所以要<span class="hl warn">提早一點按</span>。</li>
-      <li>有雲擋住時看不到缺口，<span class="hl">在心裡估</span>它什麼時候到。</li>
+      <li>🌿 樹枝的<span class="hl">缺口會上下移動</span>。</li>
+      <li>👆 看準時機<span class="hl">點一下畫面</span>，螢火蟲就起飛。</li>
+      <li>⏱ 螢火蟲要飛一小段才到樹枝，所以要<span class="hl warn">提早一點按</span>。</li>
+      <li>☁️ 有雲擋住時看不到缺口，<span class="hl">在心裡估</span>它什麼時候到。</li>
     </ul>
-    <p class="note">先練習 2 題，會告訴你早了或晚了多少；正式 8 題不再顯示。</p>
+    <p class="note">會先由電腦示範 1 題，再讓你練習 2 題（會告訴你早了或晚了多少）；正式 8 題不再顯示。</p>
   </div>
   <div class="panel">
     <h3>第二段　一路回家（6 關）</h3>
     <ul class="steps">
-      <li><span class="hl">記住 3 樣東西</span>，到家要想起來。</li>
-      <li>說出今天<span class="hl">星期幾、幾月</span>。</li>
-      <li><span class="hl">算找零</span>、<span class="hl">看時鐘</span>、<span class="hl">依序點號碼 1 到 6</span>。</li>
-      <li>全部用手指<span class="hl">點大按鈕</span>作答，不用急。</li>
+      <li>🧺 <span class="hl">記住 3 樣東西</span>，到家要想起來。</li>
+      <li>📅 說出今天<span class="hl">星期幾、幾月</span>。</li>
+      <li>🪙 <span class="hl">算找零</span>、🕒 <span class="hl">看時鐘</span>、🔢 <span class="hl">依序點號碼 1 到 6</span>。</li>
+      <li>✋ 全部用手指<span class="hl">點大按鈕</span>作答，不用急。</li>
+      <li>🔊 題目會<span class="hl">唸給你聽</span>，聽不清楚可以再看文字。</li>
     </ul>
   </div>
   <form id="form" class="panel">
@@ -130,7 +135,7 @@ svg{width:100%;height:auto;display:block}
 </section>
 
 <section id="scrGame" hidden>
-  <div class="hud"><div class="hudSide"><span id="hudPhase"></span> <span id="hudCount"></span></div><div id="hudScore">0</div><div class="hudSide" style="text-align:right"><button type="button" id="btnMusic" style="padding:4px 10px" aria-label="配樂開關">♪ 開</button> <button type="button" id="btnQuit" style="padding:4px 12px">離開</button></div></div>
+  <div class="hud"><div class="hudSide"><span id="hudPhase"></span> <span id="hudCount"></span></div><div id="hudScore">0</div><div class="hudSide" style="text-align:right"><button type="button" id="btnVoice" style="padding:4px 10px" aria-label="語音開關">🔊 開</button> <button type="button" id="btnMusic" style="padding:4px 10px" aria-label="配樂開關">♪ 開</button> <button type="button" id="btnQuit" style="padding:4px 12px">離開</button></div></div>
   <div id="stage">
     <canvas id="cv"></canvas>
     <div id="q" hidden></div>
@@ -223,6 +228,16 @@ const Music=(()=>{
   };
 })();
 
+/* ---------- voice: read each instruction aloud (Web Speech API, zh-TW) ---------- */
+const Voice=(()=>{ let on=true, voice=null;
+  function pick(){ if(!('speechSynthesis' in window))return; const vs=speechSynthesis.getVoices(); voice=vs.find(v=>/zh[-_]TW/i.test(v.lang))||vs.find(v=>/zh/i.test(v.lang))||null; }
+  if('speechSynthesis' in window){ pick(); speechSynthesis.onvoiceschanged=pick; }
+  return {
+    say(text){ if(!on||!('speechSynthesis' in window)||!text)return; try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text.replace(/[【】「」『』]/g,'')); u.lang='zh-TW'; u.rate=.9; u.pitch=1; if(voice)u.voice=voice; speechSynthesis.speak(u); }catch(_){} },
+    stop(){ try{ speechSynthesis.cancel(); }catch(_){} },
+    toggle(){ on=!on; if(!on)this.stop(); return on; },
+  }; })();
+
 /* ---------- canvas ---------- */
 const cv=$('#cv'), g=cv.getContext('2d');
 function fit(){ const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1; cv.width=r.width*d; cv.height=r.height*d; g.setTransform(d,0,0,d,0,0); }
@@ -278,7 +293,7 @@ function drawHome(now){
 /* ---------- screens ---------- */
 function show(id){ ['#scrIntro','#scrGame','#scrResult'].forEach(s=>$(s).hidden=s!==id); window.scrollTo(0,0); }
 function message(title,text,btn,fn,btn2,fn2){
-  $('#msg').hidden=false; $('#msgTitle').textContent=title; $('#msgText').textContent=text;
+  $('#msg').hidden=false; $('#msgTitle').textContent=title; $('#msgText').textContent=text; Voice.say(title+'。'+text);
   $('#msgBtn').textContent=btn; $('#msgBtn').onclick=e=>{ e.stopPropagation(); $('#msg').hidden=true; fn(); };
   $('#msgBtn2').hidden=!btn2; $('#msgBtn2').textContent=btn2||''; $('#msgBtn2').onclick=e=>{ e.stopPropagation(); $('#msg').hidden=true; fn2(); };
 }
@@ -286,14 +301,16 @@ function addScore(n){ S.score+=n; $('#hudScore').textContent=S.score; }
 
 /* ---------- timing block loop ---------- */
 function startPhase(phase){
+  if(phase==='demo'){ S.phase='demo'; S.idx=-1; S.cur=null; S.itiExtra=0; $('#q').hidden=true; $('#pts').textContent=''; S.trials=[{dur:3400,fog:false,size:0,block:0,iti:900}]; $('#hudPhase').textContent='電腦示範'; $('#hudCount').textContent=''; S.nextAt=performance.now()+1200; cancelAnimationFrame(S.raf); S.raf=requestAnimationFrame(tick); Voice.say('先看電腦示範一次。注意看，螢火蟲會在缺口快到的時候起飛。'); return; }
   S.phase=phase; S.idx=-1; S.cur=null; S.itiExtra=0; $('#q').hidden=true; $('#pts').textContent='';
   S.trials=phase==='practice'?buildPractice():PLAN.timing;
   $('#hudPhase').textContent=phase==='practice'?'練習':'第一段 穿過樹枝';
   S.nextAt=performance.now()+800; cancelAnimationFrame(S.raf); S.raf=requestAnimationFrame(tick);
 }
 function tick(now){
-  if(S.phase!=='practice'&&S.phase!=='test')return;
+  if(S.phase!=='practice'&&S.phase!=='test'&&S.phase!=='demo')return;
   const c=S.cur;
+  if(S.phase==='demo'&&c&&c.pressAt==null&&now>=c.target){ press(now,true); $('#fb').textContent='👆 就是現在！按下去'; S.fbUntil=now+1500; Voice.say('就是現在，按下去'); }
   if(c&&!c.scored&&c.pressAt!=null&&now>=c.pressAt+FLIGHT_MS&&c.status==='ok'&&Math.abs(c.err)<=tolOf(c)){ c.scored=true; if(S.phase==='test'){ S.timingScore+=pointsFor(c); addScore(pointsFor(c)); } $('#pts').classList.add('got'); }
   if(S.cur&&now>=S.cur.start+S.cur.dur+POST_MS)endTrial(now);
   if(!S.cur&&now>=S.nextAt){
@@ -305,55 +322,61 @@ function tick(now){
 }
 function endTrial(now){
   const t=S.cur;
-  if(S.phase==='practice'){ $('#fb').textContent=t.status==='miss'?(SOFT?'這次沒按到，沒關係':'沒有按到喔'):t.status==='premature'?(SOFT?'這次早了一點':'太早按了'):(Math.abs(t.err)<=tolOf(t)?'穿過去了！':(SOFT?'這次差一點':'撞到樹枝了！'))+(t.err<0?`（早了 ${Math.round(-t.err)} 毫秒）`:`（晚了 ${Math.round(t.err)} 毫秒）`); S.fbUntil=now+t.iti+500; }
+  if(S.phase==='practice'){ $('#fb').textContent=t.status==='miss'?(SOFT?'這次沒按到，沒關係':'沒有按到喔'):t.status==='premature'?(SOFT?'這次早了一點':'太早按了'):(Math.abs(t.err)<=tolOf(t)?'穿過去了！':(SOFT?'這次差一點':'撞到樹枝了！'))+(t.err<0?`（早了 ${Math.round(-t.err)} 毫秒）`:`（晚了 ${Math.round(t.err)} 毫秒）`); S.fbUntil=now+t.iti+500; Voice.say($('#fb').textContent.replace(/（.*?）/,'')); }
   S.cur=null; $('#pts').textContent=''; S.nextAt=now+t.iti;
 }
-function press(ts){
-  if(S.phase!=='practice'&&S.phase!=='test')return; const t=S.cur;
+function press(ts,auto){
+  if(S.phase==='demo'&&!auto)return; if(S.phase!=='practice'&&S.phase!=='test'&&S.phase!=='demo')return; const t=S.cur;
   if(!t){ S.itiExtra++; return; } if(t.pressAt!=null||ts>t.target+POST_MS){ t.extra++; return; }
   t.pressAt=ts; t.err=ts-t.target; t.status=ts<t.start+(t.target-t.start)/2?'premature':'ok';
   const crash=t.status!=='ok'||Math.abs(t.err)>tolOf(t); if(crash)S.sparkAt=ts+FLIGHT_MS; Music.flutter(crash?FLIGHT_MS:FLIGHT_MS+AFTER_MS,crash,t.fog);
 }
 function endPhase(){
+  if(S.phase==='demo'){ S.phase='between'; $('#fb').textContent=''; message('看懂了嗎？','剛才是電腦示範：螢火蟲在缺口快到的時候起飛，就能穿過去。換你試試看，看準時機點一下畫面。','換我試試',()=>startPhase('practice'),'再看一次示範',()=>startPhase('demo')); return; }
   if(S.phase==='practice'){ S.phase='between'; $('#fb').textContent=''; message('練習完成！','接下來正式開始，先穿樹枝 '+LV.n+' 題，不會再顯示早或晚多少。','開始正式遊戲',()=>startPhase('test'),'再練習一次',()=>startPhase('practice')); }
-  else { S.phase='between'; $('#fb').textContent=''; message('穿過樹枝完成！','第二段：陪螢火蟲一路回家。接下來用手指點畫面上的大按鈕作答，共 6 關。','開始回家',startCog); }
+  else { S.phase='between'; $('#fb').textContent=''; message('穿過樹枝完成！','第二段：陪螢火蟲一路回家。接下來用手指點畫面上的大按鈕作答，共 6 關。先練習點一下。','開始回家',cogPractice); }
 }
 
 /* ---------- cognitive block ---------- */
-function card(html){ const q=$('#q'); q.innerHTML='<div class="qcard">'+html+'</div>'; q.scrollTop=0; return q.firstElementChild; }
+function card(html,say){ const q=$('#q'); q.innerHTML='<div class="qcard">'+html+'</div>'; q.scrollTop=0; const c=q.firstElementChild;
+  if(say!==false){ const h=c.querySelector('h2'), n=c.querySelector('p'); Voice.say(say||((h?h.textContent:'')+'。'+(n?n.textContent:''))); } return c; }
 function fb(text,msLen){ $('#fb').textContent=text; S.fbUntil=performance.now()+(msLen||900); clearTimeout(S.fbT); S.fbT=setTimeout(()=>$('#fb').textContent='',msLen||900); }
 function lock(c){ c.querySelectorAll('button').forEach(b=>b.disabled=true); }
 function homeLoop(now){ if(S.phase!=='cog')return; drawHome(now); S.raf=requestAnimationFrame(homeLoop); }
+function cogPractice(){ S.phase='cog'; S.cogIdx=-1; $('#q').hidden=false; $('#hudPhase').textContent='練習'; $('#hudCount').textContent=''; $('#pts').textContent=''; cancelAnimationFrame(S.raf); S.cogT=performance.now(); S.raf=requestAnimationFrame(homeLoop);
+  const c=card(`<h2>練習　請點一下「蘋果」</h2><p class="hint">👆 用手指點一下有蘋果的大按鈕</p><div class="grid3">${[['🍎','蘋果'],['🐟','魚'],['🍞','麵包']].map((i,k)=>`<button class="big item" data-k="${k}"><span class="pic">${i[0]}</span>${i[1]}</button>`).join('')}</div>`,'練習。請點一下蘋果。');
+  c.querySelectorAll('button').forEach(b=>b.onclick=()=>{ lock(c); const ok=b.dataset.k==='0'; b.classList.add(ok?'right':'wrong'); Music.hit(ok?'ok':'miss'); fb(ok?'就是這樣！':'要點蘋果喔'); Voice.say(ok?'就是這樣，很好':'要點蘋果喔');
+    setTimeout(()=>{ if(ok)startCog(); else cogPractice(); },1300); }); }
 function startCog(){ S.phase='cog'; S.cogIdx=-1; S.cog=[]; S.cogT0=performance.now(); $('#q').hidden=false; $('#hudPhase').textContent='第二段 一路回家'; cancelAnimationFrame(S.raf); S.raf=requestAnimationFrame(homeLoop); nextStation(); }
 function nextStation(){ S.cogIdx++; if(S.cogIdx>=STATIONS.length)return finish(); const st=STATIONS[S.cogIdx];
   $('#hudCount').textContent=`第 ${S.cogIdx+1} / ${STATIONS.length} 關`; $('#pts').classList.remove('got'); $('#pts').textContent='+'+st[3]; S.cogT=performance.now(); RUN[st[0]](); }
 function done(got,extra){ const st=STATIONS[S.cogIdx]; S.cog.push(Object.assign({key:st[0],name:st[1],dom:st[2],got,max:st[3],ms:performance.now()-S.cogT},extra||{}));
-  addScore(got); if(got>0){ $('#pts').textContent='+'+got; $('#pts').classList.add('got'); Music.hit(got>=st[3]&&st[3]>=4?'big':'ok'); fb(got>=st[3]?'全對！':'答對一些！'); } else { Music.hit('miss'); fb('沒關係，繼續走'); }
+  addScore(got); if(got>0){ $('#pts').textContent='+'+got; $('#pts').classList.add('got'); Music.hit(got>=st[3]&&st[3]>=4?'big':'ok'); fb(got>=st[3]?'全對！':'答對一些！'); Voice.say(got>=st[3]?'全對，太棒了':'答對一些，很好'); } else { Music.hit('miss'); fb('沒關係，繼續走'); Voice.say('沒關係，我們繼續走'); }
   setTimeout(nextStation,1100); }
 function pickThree(title,opts,after){
   const chosen=new Set();
-  const c=card(`<h2>${title}</h2><p class="note" style="font-size:16px">點選三樣，選好按「確定」。</p>
+  const c=card(`<h2>${title}</h2><p class="hint">👆 點選三樣（已選 <span id="cnt">0</span> / 3），再按「確定」</p>
   <div class="grid3">${opts.map((i,k)=>`<button class="big item" data-k="${k}"><span class="pic">${i[0]}</span>${i[1]}</button>`).join('')}</div><button class="big primary" id="ok" disabled>確定</button>`);
-  c.querySelectorAll('.item').forEach(b=>b.onclick=()=>{ const k=+b.dataset.k; if(chosen.has(k)){chosen.delete(k);b.classList.remove('sel')} else if(chosen.size<3){chosen.add(k);b.classList.add('sel')} c.querySelector('#ok').disabled=chosen.size!==3; });
+  c.querySelectorAll('.item').forEach(b=>b.onclick=()=>{ const k=+b.dataset.k; if(chosen.has(k)){chosen.delete(k);b.classList.remove('sel')} else if(chosen.size<3){chosen.add(k);b.classList.add('sel')} c.querySelector('#ok').disabled=chosen.size!==3; c.querySelector('#cnt').textContent=chosen.size; });
   c.querySelector('#ok').onclick=()=>{ lock(c); let hit=0; c.querySelectorAll('.item').forEach(b=>{ const i=opts[+b.dataset.k],ok=PLAN.list.includes(i); if(chosen.has(+b.dataset.k))b.classList.add(ok?'right':'wrong'); if(ok){ b.classList.add('right'); if(chosen.has(+b.dataset.k))hit++; } }); after(hit); };
 }
 const RUN={
-  imm(){ const c=card(`<h2>第 1 關　路上要帶回家的三樣</h2><p class="note" style="font-size:16px">請記住它們，到家要對帳。</p>
-    <div class="grid3">${PLAN.list.map(i=>`<div class="item show"><span class="pic">${i[0]}</span>${i[1]}</div>`).join('')}</div><div class="bar"><i id="b"></i></div>`);
+  imm(){ const c=card(`<h2>第 1 關　路上要帶回家的三樣</h2><p class="hint">👀 請記住這三樣，到家要想起來</p>
+    <div class="grid3">${PLAN.list.map(i=>`<div class="item show"><span class="pic">${i[0]}</span>${i[1]}</div>`).join('')}</div><div class="bar"><i id="b"></i></div>`,false);
     const b=c.querySelector('#b'); requestAnimationFrame(()=>{ b.style.transition='width 6s linear'; b.style.width='100%'; });
-    setTimeout(()=>{ S.cogT=performance.now(); pickThree('第 1 關　剛剛是哪三樣？',PLAN.immOpts,hit=>done(hit,{hit})); },6000); },
+    setTimeout(()=>{ S.cogT=performance.now(); pickThree('第 1 關　剛剛是哪三樣？',PLAN.immOpts,hit=>done(hit,{hit})); },6000); Voice.say('第一關。路上要帶回家的三樣：'+PLAN.list.map(i=>i[1]).join('、')+'。請記住。'); },
   ori(){ const now=new Date(); let got=0;
-    const c=card(`<h2>第 2 關　今天是星期幾？</h2><div class="grid2">${DAYS.map((d,k)=>`<button class="big" data-k="${k}">星期${d}</button>`).join('')}</div>`);
+    const c=card(`<h2>第 2 關　今天是星期幾？</h2><p class="hint">👆 點一個</p><div class="grid2">${DAYS.map((d,k)=>`<button class="big" data-k="${k}">星期${d}</button>`).join('')}</div>`);
     c.querySelectorAll('button').forEach(b=>b.onclick=()=>{ lock(c); const ok=+b.dataset.k===now.getDay(); b.classList.add(ok?'right':'wrong'); if(ok)got++;
       setTimeout(()=>{ const m=now.getMonth()+1,opts=[m].concat(PLAN.monthShift.map(s=>((m-1+s)%12)+1)),ord=PLAN.monthOrder.map(i=>opts[i]);
-        const c2=card(`<h2>第 2 關　現在是幾月？</h2><div class="grid2">${ord.map(x=>`<button class="big" data-k="${x}">${x} 月</button>`).join('')}</div>`);
+        const c2=card(`<h2>第 2 關　現在是幾月？</h2><p class="hint">👆 點一個</p><div class="grid2">${ord.map(x=>`<button class="big" data-k="${x}">${x} 月</button>`).join('')}</div>`);
         c2.querySelectorAll('button').forEach(b2=>b2.onclick=()=>{ lock(c2); const ok2=+b2.dataset.k===m; b2.classList.add(ok2?'right':'wrong'); if(ok2)got++; done(got,{day:ok?1:0,month:ok2?1:0}); }); },700); }); },
   calc(){ let got=0,errs=0; const ask=i=>{ if(i===2)return done(got,{errors:errs}); const q=PLAN.change[i];
-      const c=card(`<h2>第 3 關　找零錢（${i+1}/2）</h2><p>拿 <b>${q.pay} 元</b> 買了 <b>${q.cost} 元</b> 的東西，<br>老闆要找多少錢？</p><div class="grid2">${q.opts.map(x=>`<button class="big" data-k="${x}">${x} 元</button>`).join('')}</div>`);
+      const c=card(`<h2>第 3 關　找零錢（${i+1}/2）</h2><p>拿 <b>${q.pay} 元</b> 買了 <b>${q.cost} 元</b> 的東西，<br>老闆要找多少錢？</p><p class="hint">👆 點出正確的金額</p><div class="grid2">${q.opts.map(x=>`<button class="big" data-k="${x}">${x} 元</button>`).join('')}</div>`);
       c.querySelectorAll('button').forEach(b=>b.onclick=()=>{ lock(c); const ok=+b.dataset.k===q.ans; b.classList.add(ok?'right':'wrong'); if(ok)got+=2; else errs++; setTimeout(()=>ask(i+1),700); }); }; ask(0); },
-  clock(){ const {h,m,opts}=PLAN.clock; const c=card(`<h2>第 4 關　哪一個鐘是 ${h} 點 ${String(m).padStart(2,'0')} 分？</h2><div class="clockgrid">${opts.map((o,k)=>`<button class="big" data-k="${k}">${clockSVG(o[0],o[1])}</button>`).join('')}</div>`);
+  clock(){ const {h,m,opts}=PLAN.clock; const c=card(`<h2>第 4 關　哪一個鐘是 ${h} 點 ${String(m).padStart(2,'0')} 分？</h2><p class="hint">👆 點那一個鐘</p><div class="clockgrid">${opts.map((o,k)=>`<button class="big" data-k="${k}">${clockSVG(o[0],o[1])}</button>`).join('')}</div>`);
     c.querySelectorAll('button').forEach(b=>b.onclick=()=>{ lock(c); const ok=opts[+b.dataset.k][2]===1; b.classList.add(ok?'right':'wrong'); done(ok?2:0); }); },
-  seq(){ let want=1,err=0; const c=card(`<h2>第 5 關　排隊號碼牌</h2><p class="note" style="font-size:16px">請依照 1、2、3… 的順序，從 1 點到 6。</p><div class="seq">${PLAN.seq.map((p,k)=>`<button data-n="${k+1}" style="left:${p[0]}%;top:${p[1]}%">${k+1}</button>`).join('')}</div>`);
+  seq(){ let want=1,err=0; const c=card(`<h2>第 5 關　排隊號碼牌</h2><p class="hint">👆 先點 1，再點 2、3……點到 6</p><div class="seq">${PLAN.seq.map((p,k)=>`<button data-n="${k+1}" style="left:${p[0]}%;top:${p[1]}%">${k+1}</button>`).join('')}</div>`);
     c.querySelectorAll('.seq button').forEach(b=>b.onclick=()=>{ const n=+b.dataset.n; if(n===want){ b.classList.add('right'); b.disabled=true; want++; if(want>6)done(err===0?3:err<=2?2:1,{errors:err}); } else { err++; b.classList.add('wrong'); setTimeout(()=>b.classList.remove('wrong'),400); } }); },
   recall(){ pickThree('第 6 關　到家了，路上帶回來的是哪三樣？',PLAN.recallOpts,hit=>done(hit*2,{hit})); },
 };
@@ -376,7 +399,7 @@ function chart(r){ const W=700,H=220,L=48,R=10,T=12,B=26,MAX=500,n=r.trials.leng
   r.trials.forEach((t,i)=>{ if(t.status==='miss')s+=`<text x="${x(i)}" y="${T+10}" text-anchor="middle" font-size="12" fill="var(--bad)">×</text>`; else s+=`<circle cx="${x(i)}" cy="${y(t.err)}" r="4.5" fill="${t.status==='premature'?'var(--bad)':t.fog?'var(--warn)':'var(--glow)'}"/>`; });
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="每題時間誤差">${s}</svg>`; }
 function cogBars(){ return '<div class="bars">'+S.cog.map(r=>`<div class="brow"><span>${r.name}<br><small class="note">${r.dom}</small></span><div class="btrack"><i style="width:${100*r.got/r.max}%;background:${r.got===r.max?'var(--ok)':r.got?'var(--glow)':'var(--bad)'}"></i></div><b>${r.got}/${r.max}</b></div>`).join('')+'</div>'; }
-function finish(){ S.phase='done'; cancelAnimationFrame(S.raf); Music.stop(1200); const r=analyze(PLAN.timing),j=judge(); save(r,j); renderResult(r,j); }
+function finish(){ S.phase='done'; cancelAnimationFrame(S.raf); Music.stop(1200); Voice.stop(); const r=analyze(PLAN.timing),j=judge(); save(r,j); renderResult(r,j); }
 function renderResult(r,j){
   const row=(k,gp)=>`<tr><td>${k}</td><td class="v">${gp.n}</td><td class="v">${ms(gp.ae)}</td><td class="v">${signed(gp.ce)}</td><td class="v">${ms(gp.ve)}</td></tr>`;
   const who=[S.code&&`代號 ${esc(S.code)}`,S.age&&`${esc(S.age)} 歲`,S.edu?'國小或以下':''].filter(Boolean).join('・');
@@ -432,7 +455,7 @@ function records(){ const a=load();
   show('#scrResult'); $('#btnHome').onclick=()=>show('#scrIntro');
   const k=$('#btnClr'); if(k)k.onclick=()=>{ if(k.dataset.c){ try{localStorage.removeItem('firefly-night-final-rec')}catch(e){} records(); } else { k.dataset.c=1; k.textContent='再按一次確認清除'; } };
 }
-function abort(){ Music.stop(); cancelAnimationFrame(S.raf); S.phase='idle'; S.cur=null; show('#scrIntro'); }
+function abort(){ Music.stop(); Voice.stop(); cancelAnimationFrame(S.raf); S.phase='idle'; S.cur=null; show('#scrIntro'); }
 
 /* ---------- events ---------- */
 $('#form').addEventListener('submit',e=>{ e.preventDefault();
@@ -442,12 +465,13 @@ $('#form').addEventListener('submit',e=>{ e.preventDefault();
   err.style.display='none'; S.code=code; S.age=age; S.edu=+edu;
   PLAN=buildPlan(); TIMINGMAX=PLAN.timing.reduce((s,t)=>s+pointsFor(t),0); S.score=0; S.timingScore=0; S.cog=[]; S.t0=performance.now(); $('#hudScore').textContent='0';
   show('#scrGame'); fit(); Music.start();
-  message('先來練習','看準缺口移動的時機按下去，讓螢火蟲穿過樹枝的缺口。','練習',()=>startPhase('practice'),'直接開始正式遊戲',()=>startPhase('test')); });
+  message('先看示範','電腦會先示範一次：看準缺口移動的時機按下去，讓螢火蟲穿過樹枝的缺口。','看示範',()=>startPhase('demo'),'直接開始正式遊戲',()=>startPhase('test')); });
 $('#btnQuit').onclick=abort;
+$('#btnVoice').onclick=e=>{ e.currentTarget.textContent=Voice.toggle()?'🔊 開':'🔇 關'; e.currentTarget.blur(); };
 $('#btnMusic').onclick=e=>{ e.currentTarget.textContent=Music.toggle()?'♪ 開':'♪ 關'; e.currentTarget.blur(); };
 $('#stage').addEventListener('pointerdown',e=>{ if(e.target.closest('button')||e.target.closest('#q'))return; if(S.phase==='practice'||S.phase==='test'){ e.preventDefault(); press(e.timeStamp); } });
 document.addEventListener('keydown',e=>{ if(e.code!=='Space'||e.repeat)return; if(S.phase==='practice'||S.phase==='test'){ e.preventDefault(); press(e.timeStamp); } });
-document.addEventListener('visibilitychange',()=>{ if(document.hidden&&(S.phase==='practice'||S.phase==='test'))abort(); });
+document.addEventListener('visibilitychange',()=>{ if(document.hidden&&(S.phase==='practice'||S.phase==='test'||S.phase==='demo'))abort(); });
 window.addEventListener('resize',()=>{ if(!$('#scrGame').hidden)fit(); });
 (function(){ const n=load().length; if(n){ const b=document.createElement('button'); b.type='button'; b.textContent=`過去紀錄（${n}）`; b.onclick=records; $('#introBtns').appendChild(b); } })();
 })();
