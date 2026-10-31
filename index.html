@@ -1,239 +1,348 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a1420">
 <title>市場採買日</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+<meta name="description" content="約 2 到 3 分鐘的腦健康小遊戲：跟著阿嬤去黃昏市場採買，六個小關卡，記清單、找零錢、看時鐘、排隊號碼。研究用途，不應作為診斷依據。">
 <style>
-/* Layout: one card per station, full-width tap targets, daytime market palette */
-:root{
-  --bg:#fbf6ec; --paper:#ffffff; --fg:#2b2419; --muted:#6f6353;
-  --accent:#c8551b; --accent-ink:#ffffff; --line:#e6dccb;
-  --ok:#2e7d4f; --warn:#b7791f; --bad:#b3261e; --sel:#fde8d8;
-  --font:"Noto Sans TC",system-ui,-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;
-}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#1c1813; --paper:#2a241c; --fg:#f3ebdd; --muted:#b8aa94; --accent:#e8793a; --accent-ink:#1c1813;
-  --line:#3d3528; --ok:#5fc08a; --warn:#e0a94a; --bad:#f07a72; --sel:#4a2f1d; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#1c1813; --paper:#2a241c; --fg:#f3ebdd; --muted:#b8aa94; --accent:#e8793a; --accent-ink:#1c1813;
-  --line:#3d3528; --ok:#5fc08a; --warn:#e0a94a; --bad:#f07a72; --sel:#4a2f1d; color-scheme:dark}
+/* Layout: intro page → fixed full-screen stage (canvas dusk market + question overlay) → result page. Single deliberate dusk theme. */
+:root{--night:#1a1420;--panel:#27202f;--line:#43384d;--ink:#f6efe4;--muted:#b7a9b8;--glow:#ffcf5a;--warn:#f58a3c;--bad:#f0655a;--ok:#7fd68a;color-scheme:dark}
 *{box-sizing:border-box}
-html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:20px;line-height:1.5;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px}
-.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px;min-height:100%}
-header{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-header h1{font-size:22px;margin:0;font-weight:900;letter-spacing:.04em}
-.hud{font-size:16px;color:var(--muted);font-variant-numeric:tabular-nums}
-.hud b{color:var(--accent);font-size:20px}
-.card{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:14px}
-h2{margin:0;font-size:26px;font-weight:900;text-wrap:balance}
+html,body{margin:0;min-height:100%;background:var(--night);color:var(--ink);font-family:system-ui,-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;line-height:1.6}
+[hidden]{display:none!important}
+.wrap{max-width:720px;margin:0 auto;padding-block:22px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
+h1{font-size:32px;margin:0;line-height:1.2;text-wrap:balance}
+h1 span{color:var(--glow)}
+h3{margin:0 0 10px;font-size:17px}
 p{margin:0}
-.muted{color:var(--muted);font-size:17px}
-button{font:inherit;font-size:22px;font-weight:700;border:2px solid var(--line);background:var(--paper);color:var(--fg);
-  border-radius:16px;padding:16px 18px;cursor:pointer;min-height:64px;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-size:24px}
-button.sel{background:var(--sel);border-color:var(--accent)}
-button.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 18%,var(--paper))}
-button.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 18%,var(--paper))}
-button:disabled{opacity:.6;cursor:default}
+.lede{font-size:17px;color:#e3d9d0}
+.note{font-size:13px;color:var(--muted)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+.warnbox{background:rgba(245,138,60,.12);border:1px solid var(--warn);border-radius:12px;padding:12px 14px;font-size:14px}
+.fields{display:flex;flex-wrap:wrap;gap:14px}
+.field{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--muted)}
+input,select{background:var(--night);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;width:170px;max-width:100%}
+button{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:11px 20px;font:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+button:focus-visible{outline:3px solid var(--glow);outline-offset:2px}
+button.primary{background:var(--glow);border-color:var(--glow);color:#2a1d08;font-weight:700}
+.btns{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+/* game screen */
+#scrGame{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--night);user-select:none;-webkit-user-select:none;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.hud{display:flex;justify-content:space-between;align-items:center;padding:6px 14px;font-size:14px;color:var(--muted);
+  padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px))}
+.hudSide{flex:1;min-width:0}
+#hudScore{font-size:52px;font-weight:800;line-height:1.1;color:var(--glow);text-shadow:0 0 16px rgba(255,207,90,.45);font-variant-numeric:tabular-nums}
+#hudScore::before{content:"總分";display:block;font-size:14px;font-weight:700;line-height:1.2;text-align:center}
+#stage{flex:1;position:relative;min-height:0}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+#q{position:absolute;inset:0;overflow:auto;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:14px;
+  padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px))}
+#q>*{max-width:560px;width:100%;margin:0 auto}
+.qcard{background:rgba(39,32,47,.9);border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px;backdrop-filter:blur(4px)}
+.qcard h2{margin:0;font-size:25px;line-height:1.3;text-wrap:balance}
+.qcard p{font-size:19px}
+.big{font-size:22px;font-weight:700;border-radius:16px;padding:16px 14px;min-height:64px;border:2px solid var(--line);background:var(--night)}
+.big.sel{border-color:var(--glow);background:rgba(255,207,90,.18)}
+.big.right{border-color:var(--ok);background:rgba(127,214,138,.22)}
+.big.wrong{border-color:var(--bad);background:rgba(240,101,90,.22)}
+.big:disabled{opacity:.7;cursor:default}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .item{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:18px;padding:12px 6px}
 .item .pic{font-size:44px;line-height:1}
+.show{background:var(--night);border:1px solid var(--line);border-radius:16px}
 .bar{height:10px;background:var(--line);border-radius:5px;overflow:hidden}
-.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
-.seq{position:relative;width:100%;aspect-ratio:1;max-width:100%;background:var(--bg);border-radius:16px;border:1px solid var(--line)}
-.seq button{position:absolute;width:64px;height:64px;min-height:0;border-radius:50%;padding:0;font-size:26px;transform:translate(-50%,-50%)}
+.bar i{display:block;height:100%;background:var(--glow);width:0}
+.seq{position:relative;width:100%;aspect-ratio:1;max-width:100%;border-radius:16px;background:rgba(26,20,32,.6);border:1px solid var(--line)}
+.seq button{position:absolute;width:66px;height:66px;border-radius:50%;padding:0;font-size:28px;font-weight:800;transform:translate(-50%,-50%);background:var(--glow);color:#2a1d08;border:3px solid #fff3}
+.seq button.right{background:var(--ok);color:#10331a}
+.seq button.wrong{background:var(--bad)}
 .clockgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.clockgrid button{padding:10px;min-height:0}
+.clockgrid button{padding:10px}
 .clockgrid svg{width:100%;height:auto;display:block}
-.score{font-size:56px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
-.score small{font-size:22px;color:var(--muted);font-weight:500}
-.pill{display:inline-block;padding:4px 14px;border-radius:999px;font-weight:700;font-size:18px;color:#fff}
-.pill.ok{background:var(--ok)}.pill.warn{background:var(--warn)}.pill.bad{background:var(--bad)}
-table{width:100%;border-collapse:collapse;font-size:17px;font-variant-numeric:tabular-nums}
-td{padding:6px 0;border-bottom:1px solid var(--line)}
-td:last-child{text-align:right;font-weight:700}
-.meter{position:relative;height:14px;border-radius:7px;background:linear-gradient(90deg,var(--ok),var(--warn),var(--bad))}
-.meter i{position:absolute;top:-5px;width:4px;height:24px;background:var(--fg);border-radius:2px;transform:translateX(-50%)}
-.row{display:flex;gap:10px;flex-wrap:wrap}
-.row>*{flex:1;min-width:0}
-input,select{font:inherit;font-size:20px;padding:12px;border:2px solid var(--line);border-radius:12px;background:var(--paper);color:var(--fg);width:100%}
-label{display:flex;flex-direction:column;gap:4px;font-size:16px;color:var(--muted)}
-.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 16px);transform:translateX(-50%);background:var(--accent);color:var(--accent-ink);
-  padding:10px 22px;border-radius:999px;font-weight:900;font-size:24px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
-.toast.show{opacity:1}
+#msg{position:absolute;inset:0;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;text-align:center;padding:20px;background:rgba(26,20,32,.84)}
+#msgTitle{font-size:24px;font-weight:700}
+#msgText{font-size:18px;max-width:30em}
+#msg button{font-size:20px;padding:14px 26px}
+#pts{position:absolute;left:14px;top:10px;font-size:40px;font-weight:800;color:var(--warn);pointer-events:none;transition:transform .15s,color .15s;transform-origin:left center;z-index:2}
+#pts:not(:empty)::before{content:"獎勵";display:block;font-size:14px;line-height:1.2}
+#pts.got{color:var(--glow);transform:scale(1.5)}
+#fb{position:absolute;left:0;right:0;top:12px;text-align:center;font-size:22px;font-weight:700;color:var(--glow);pointer-events:none;z-index:2;text-shadow:0 0 10px #000}
+/* result */
+.score{font-size:60px;font-weight:900;line-height:1;color:var(--glow);font-variant-numeric:tabular-nums}
+.pill{display:inline-block;padding:4px 14px;border-radius:999px;font-weight:700;font-size:16px;color:#1a1420}
+.pill.ok{background:var(--ok)}.pill.warn{background:var(--warn)}.pill.bad{background:var(--bad);color:#fff}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}
+td.v,th.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+svg{max-width:100%;height:auto;display:block}
+.bars{display:flex;flex-direction:column;gap:10px}
+.brow{display:grid;grid-template-columns:7.5em 1fr 3em;align-items:center;gap:10px;font-size:16px}
+.brow small{display:block;font-size:12px;color:var(--muted)}
+.btrack{height:14px;background:var(--line);border-radius:7px;overflow:hidden}.btrack i{display:block;height:100%;border-radius:7px}
+.brow b{text-align:right;font-variant-numeric:tabular-nums}
+.meter{position:relative;height:14px;border-radius:7px;background:linear-gradient(90deg,var(--ok),var(--warn),var(--bad));margin:10px 0 4px}
+.meter i{position:absolute;top:-5px;width:4px;height:24px;background:var(--ink);border-radius:2px;transform:translateX(-50%)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 
-<div class="wrap">
-  <header><h1>🧺 市場採買日</h1><div class="hud" id="hud" hidden>得分 <b id="hudScore">0</b> / 20 · <span id="hudTime">0:00</span></div></header>
-  <div id="app"></div>
-  <p class="muted" style="text-align:center;font-size:14px">此遊戲只提供腦健康趨勢參考，不是醫療診斷。</p>
-</div>
-<div class="toast" id="toast"></div>
+<section id="scrIntro" class="wrap">
+  <header style="display:flex;flex-direction:column;gap:8px">
+    <h1>市場採買日<span>.</span></h1>
+    <button class="primary" type="submit" form="form" id="btnStart" style="width:100%;font-size:26px;padding:16px 20px">▶ 開始</button>
+    <p class="note">研究用途，不應作為診斷依據，詳情請洽專業人員</p>
+    <p class="lede">黃昏了，跟著去市場買晚餐的菜。一路上有六個小關卡：<b>記清單、說日期、找零錢、看時鐘、排隊號碼</b>，最後回到家對一對買了什麼。字很大、按鈕很大，看到什麼就按什麼，不用急。</p>
+  </header>
+  <div class="panel">
+    <h3>玩法</h3>
+    <p>用手指點畫面上的大按鈕作答。每一關左上角會標出這關值幾分，答對會馬上加到上面的總分。</p>
+    <p class="note" style="margin-top:8px">先有 1 題練習，正式遊戲 6 關，約 2 到 3 分鐘，滿分 20 分。每個人的題目和順序都相同，所以不同次、不同人之間可以互相比較。</p>
+  </div>
+  <form id="form" class="panel">
+    <h3>受測資料（皆可不填）</h3>
+    <div class="fields">
+      <label class="field">受測代號<input id="inCode" maxlength="24" placeholder="例如：A001" autocomplete="off"></label>
+      <label class="field">年齡<input id="inAge" type="number" min="40" max="110" placeholder="歲"></label>
+      <label class="field">教育程度<select id="inEdu"><option value="0">國中以上</option><option value="1">國小或以下</option></select></label>
+    </div>
+  </form>
+  <div class="warnbox"><b>這是研究雛型：</b>分數與判讀門檻參考常見篩檢量表的配分設計，但尚未經臨床驗證，也沒有常模，只能看趨勢。作答資料只保存在這台裝置的瀏覽器，不會上傳。</div>
+  <div class="btns" id="introBtns"></div>
+</section>
+
+<section id="scrGame" hidden>
+  <div class="hud"><div class="hudSide"><span id="hudPhase"></span> <span id="hudCount"></span></div><div id="hudScore">0</div><div class="hudSide" style="text-align:right"><button type="button" id="btnMusic" style="padding:4px 10px" aria-label="配樂開關">♪ 開</button> <button type="button" id="btnQuit" style="padding:4px 12px">離開</button></div></div>
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="q"></div>
+    <div id="fb"></div><div id="pts"></div>
+    <div id="msg" hidden><div id="msgTitle"></div><div id="msgText"></div><button class="primary" type="button" id="msgBtn"></button><button type="button" id="msgBtn2" hidden></button></div>
+  </div>
+</section>
+
+<section id="scrResult" class="wrap" hidden></section>
 
 <script>
-(function(){
-const $=s=>document.querySelector(s), app=$('#app');
+(() => {
+const $ = s => document.querySelector(s);
+const SEED = 20261031;             // fixed so everyone gets the same items, sums, clock and layout
+const LABEL = '研究用途，不應作為診斷依據，詳情請洽專業人員';
 const ITEMS=[['🍎','蘋果'],['🐟','魚'],['🥚','雞蛋'],['🥬','青菜'],['🍞','麵包'],['🍌','香蕉'],['🧄','蒜頭'],['🍊','橘子'],['🥛','牛奶'],['🍚','白米']];
 const DAYS=['日','一','二','三','四','五','六'];
-const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
-let S; // session state
-function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),700)}
-function add(n){S.score+=n;$('#hudScore').textContent=S.score;if(n>0)toast('+'+n+' 分')}
-function fmt(ms){const s=Math.round(ms/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
-let timer;function startClock(){clearInterval(timer);timer=setInterval(()=>{$('#hudTime').textContent=fmt(Date.now()-S.t0)},500)}
-function view(html){app.innerHTML='<div class="card">'+html+'</div>';window.scrollTo(0,0);return app.firstElementChild}
-function next(fn,delay){setTimeout(fn,delay==null?900:delay)}
-function lock(c){c.querySelectorAll('button').forEach(b=>b.disabled=true)}
-
-/* ---------- start ---------- */
-function start(){
-  $('#hud').hidden=true;
-  const rec=load();
-  const c=view(`<h2>一起去市場買菜吧</h2>
-  <p class="muted">六個小關卡，大約 2 到 3 分鐘。字很大、按鈕很大，看到什麼就按什麼，不用急。</p>
-  <div class="row"><label>稱呼或代號<input id="name" placeholder="例如：王阿嬤"></label></div>
-  <div class="row"><label>年齡<input id="age" type="number" inputmode="numeric" placeholder="75"></label>
-  <label>教育程度<select id="edu"><option value="0">國中以上</option><option value="1">國小或以下</option></select></label></div>
-  <button class="primary" id="go">開始採買</button>
-  ${rec.length?`<button id="recs">查看過去紀錄（${rec.length}）</button>`:''}`);
-  c.querySelector('#go').onclick=()=>{
-    S={name:c.querySelector('#name').value.trim()||'未填',age:c.querySelector('#age').value,edu:+c.querySelector('#edu').value,
-       score:0,dom:{},t0:Date.now(),list:shuffle(ITEMS).slice(0,3),seqErr:0,rt:[]};
-    $('#hud').hidden=false;$('#hudScore').textContent='0';startClock();st1();
-  };
-  const r=c.querySelector('#recs');if(r)r.onclick=records;
-}
-
-/* ---------- 1 採買清單：看 3 樣，馬上選出來 (3) ---------- */
-function st1(){
-  const c=view(`<h2>第 1 關　今天要買這三樣</h2><p class="muted">請記住它們，等一下要用。</p>
-  <div class="grid3">${S.list.map(i=>`<div class="item card" style="padding:14px 6px"><span class="pic">${i[0]}</span>${i[1]}</div>`).join('')}</div>
-  <div class="bar"><i id="b"></i></div>`);
-  requestAnimationFrame(()=>{c.querySelector('#b').style.transition='width 6s linear';c.querySelector('#b').style.width='100%'});
-  setTimeout(()=>pick('第 1 關　剛剛要買哪三樣？','imm',3,st2),6000);
-}
-function pick(title,key,pts,after){
-  const opts=shuffle(S.list.concat(shuffle(ITEMS.filter(i=>!S.list.includes(i))).slice(0,3)));
-  const chosen=new Set();
-  const c=view(`<h2>${title}</h2><p class="muted">點選三樣，選好按「確定」。</p>
-  <div class="grid3">${opts.map((i,k)=>`<button class="item" data-k="${k}"><span class="pic">${i[0]}</span>${i[1]}</button>`).join('')}</div>
-  <button class="primary" id="ok" disabled>確定</button>`);
-  c.querySelectorAll('.item').forEach(b=>b.onclick=()=>{const k=+b.dataset.k;
-    if(chosen.has(k)){chosen.delete(k);b.classList.remove('sel')}else if(chosen.size<3){chosen.add(k);b.classList.add('sel')}
-    c.querySelector('#ok').disabled=chosen.size!==3});
-  c.querySelector('#ok').onclick=()=>{lock(c);let hit=0;
-    c.querySelectorAll('.item').forEach(b=>{const i=opts[+b.dataset.k];const ok=S.list.includes(i);
-      if(chosen.has(+b.dataset.k))b.classList.add(ok?'right':'wrong');if(ok){b.classList.add('right');if(chosen.has(+b.dataset.k))hit++}});
-    const got=Math.round(hit*pts/3);S.dom[key]=got;add(got);next(after,1200)};
-}
-
-/* ---------- 2 今天幾號：星期 + 月份 (2) ---------- */
-function st2(){
-  const now=new Date();S.dom.ori=0;
-  const c=view(`<h2>第 2 關　今天是星期幾？</h2>
-  <div class="grid2">${DAYS.map((d,k)=>`<button data-k="${k}">星期${d}</button>`).join('')}</div>`);
-  c.querySelectorAll('button').forEach(b=>b.onclick=()=>{lock(c);const ok=+b.dataset.k===now.getDay();
-    b.classList.add(ok?'right':'wrong');if(ok){S.dom.ori++;add(1)}next(st2b)});
-}
-function st2b(){
-  const now=new Date(),m=now.getMonth()+1;
-  const opts=shuffle([m,(m%12)+1,((m+10)%12)+1,((m+5)%12)+1]);
-  const c=view(`<h2>第 2 關　現在是幾月？</h2>
-  <div class="grid2">${opts.map(x=>`<button data-k="${x}">${x} 月</button>`).join('')}</div>`);
-  c.querySelectorAll('button').forEach(b=>b.onclick=()=>{lock(c);const ok=+b.dataset.k===m;
-    b.classList.add(ok?'right':'wrong');if(ok){S.dom.ori++;add(1)}next(st3)});
-}
-
-/* ---------- 3 找零錢：2 題 (4) ---------- */
 const CHANGE=[[100,35],[50,18],[100,62],[50,27],[100,47]];
-function st3(){S.dom.calc=0;const qs=shuffle(CHANGE).slice(0,2);ask(0);
-  function ask(i){if(i===2)return st4();const [pay,cost]=qs[i],ans=pay-cost;
-    const opts=shuffle([ans,ans+10,ans-5,ans+3]);
-    const c=view(`<h2>第 3 關　找零錢（${i+1}/2）</h2><p>拿 <b>${pay} 元</b> 買了 <b>${cost} 元</b> 的菜，<br>老闆要找多少錢？</p>
-    <div class="grid2">${opts.map(x=>`<button data-k="${x}">${x} 元</button>`).join('')}</div>`);
-    c.querySelectorAll('button').forEach(b=>b.onclick=()=>{lock(c);const ok=+b.dataset.k===ans;
-      b.classList.add(ok?'right':'wrong');if(ok){S.dom.calc+=2;add(2)}next(()=>ask(i+1))});}
-}
-
-/* ---------- 4 看時鐘：選出正確的鐘 (2) ---------- */
-function clockSVG(h,m){const ha=(h%12+m/60)*30,ma=m*6;const P=(a,r)=>{const t=(a-90)*Math.PI/180;return (60+r*Math.cos(t)).toFixed(1)+','+(60+r*Math.sin(t)).toFixed(1)};
-  let ticks='';for(let i=0;i<12;i++){ticks+=`<line x1="${P(i*30,50).replace(',','" y1="')}" x2="${P(i*30,55).replace(',','" y2="')}" stroke="currentColor" stroke-width="2"/>`}
-  const nums=[12,3,6,9].map((n,i)=>{const [x,y]=P(i*90,42).split(',');return `<text x="${x}" y="${+y+5}" font-size="13" text-anchor="middle" fill="currentColor" font-weight="700">${n}</text>`}).join('');
-  return `<svg viewBox="0 0 120 120" aria-label="時鐘"><circle cx="60" cy="60" r="57" fill="none" stroke="currentColor" stroke-width="3"/>${ticks}${nums}
-  <line x1="60" y1="60" x2="${P(ha,30).replace(',','" y2="')}" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
-  <line x1="60" y1="60" x2="${P(ma,46).replace(',','" y2="')}" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><circle cx="60" cy="60" r="4" fill="currentColor"/></svg>`}
 const CLOCKS=[[11,10],[3,40],[8,20],[4,45]];
-function st4(){const [h,m]=CLOCKS[Math.floor(Math.random()*CLOCKS.length)];
-  const wrongs=[[m/5,h*5%60],[(h+6)%12||12,m],[h,(m+30)%60]];
-  const opts=shuffle([[h,m,1]].concat(wrongs.map(w=>[w[0],w[1],0])));
-  const c=view(`<h2>第 4 關　哪一個鐘是 ${h} 點 ${String(m).padStart(2,'0')} 分？</h2>
-  <div class="clockgrid">${opts.map((o,k)=>`<button data-k="${k}">${clockSVG(o[0],o[1])}</button>`).join('')}</div>`);
-  c.querySelectorAll('button').forEach(b=>b.onclick=()=>{lock(c);const ok=opts[+b.dataset.k][2]===1;
-    b.classList.add(ok?'right':'wrong');S.dom.clock=ok?2:0;if(ok)add(2);next(st5)});
+const STATIONS=[['imm','採買清單','即時記憶',3],['ori','今天幾號','定向感',2],['calc','找零錢','計算',4],['clock','看時鐘','視覺空間',2],['seq','排隊號碼','執行功能',3],['recall','回家對帳','延遲回憶',6]];
+const MAX=STATIONS.reduce((s,x)=>s+x[3],0);
+
+function mulberry32(a){ return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function shuffle(a,rnd){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = ms => { const s=Math.round(ms/1000); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); };
+
+/* fixed plan built from the seed */
+function buildPlan(){
+  const rnd=mulberry32(SEED), items=shuffle(ITEMS,rnd);
+  const list=items.slice(0,3), foil=items.slice(3,6);
+  const mk=()=>shuffle(list.concat(foil),rnd);
+  const change=shuffle(CHANGE,rnd).slice(0,2).map(([pay,cost])=>({pay,cost,ans:pay-cost,opts:shuffle([pay-cost,pay-cost+10,pay-cost-5,pay-cost+3],rnd)}));
+  const [h,m]=CLOCKS[Math.floor(rnd()*CLOCKS.length)];
+  const clock={h,m,opts:shuffle([[h,m,1],[m/5,h*5%60,0],[(h+6)%12||12,m,0],[h,(m+30)%60,0]],rnd)};
+  const seq=shuffle([[18,18],[50,22],[82,18],[22,55],[58,52],[84,58],[30,84],[66,84]],rnd).slice(0,6);
+  const dayOrder=[0,1,2,3,4,5,6], monthShift=shuffle([1,11,6],rnd);
+  return {list,immOpts:mk(),recallOpts:mk(),change,clock,seq,dayOrder,monthShift,monthOrder:shuffle([0,1,2,3],rnd)};
 }
+const PLAN=buildPlan();
+const S={code:'',age:'',edu:0,phase:'idle',score:0,res:[],t0:0,raf:0,fbUntil:0};
 
-/* ---------- 5 排隊號碼：依序點 1→6 (3) ---------- */
-function st5(){
-  const pos=shuffle([[18,18],[50,22],[82,18],[22,55],[58,52],[84,58],[30,84],[66,84]]).slice(0,6);
-  let want=1,err=0;const t=Date.now();
-  const c=view(`<h2>第 5 關　排隊號碼牌</h2><p class="muted">請依照 1、2、3… 的順序，從 1 點到 6。</p>
-  <div class="seq">${pos.map((p,k)=>`<button data-n="${k+1}" style="left:${p[0]}%;top:${p[1]}%">${k+1}</button>`).join('')}</div>`);
-  c.querySelectorAll('.seq button').forEach(b=>b.onclick=()=>{const n=+b.dataset.n;
-    if(n===want){b.classList.add('right');b.disabled=true;want++;
-      if(want>6){S.seqMs=Date.now()-t;const got=err===0?3:err<=2?2:1;S.dom.seq=got;S.seqErr=err;add(got);next(st6)}}
-    else{err++;b.classList.add('wrong');setTimeout(()=>b.classList.remove('wrong'),400)}});
+/* ---------- music: soft pentatonic notes at irregular intervals; ka-ching on a correct answer, knock on a miss ---------- */
+const Music=(()=>{
+  const SCALE=[261.63,293.66,329.63,392,440,523.25,587.33,659.25];
+  let ctx=null,master=null,timer=0,playing=false,muted=false,last=3;
+  function note(freq,when,len,vol,type='sine'){ const o=ctx.createOscillator(),e=ctx.createGain(); o.type=type; o.frequency.value=freq;
+    e.gain.setValueAtTime(0,when); e.gain.linearRampToValueAtTime(vol,when+Math.min(.5,len*.25)); e.gain.exponentialRampToValueAtTime(.0001,when+len);
+    o.connect(e); e.connect(master); o.start(when); o.stop(when+len+.05); }
+  function knock(when){ const o=ctx.createOscillator(),e=ctx.createGain(); o.type='triangle'; o.frequency.setValueAtTime(260,when); o.frequency.exponentialRampToValueAtTime(110,when+.12);
+    e.gain.setValueAtTime(0,when); e.gain.linearRampToValueAtTime(3,when+.005); e.gain.exponentialRampToValueAtTime(.0001,when+.18); o.connect(e); e.connect(master); o.start(when); o.stop(when+.2); }
+  function ching(when){ const n=Math.floor(ctx.sampleRate*.03),b=ctx.createBuffer(1,n,ctx.sampleRate),d=b.getChannelData(0); for(let i=0;i<n;i++)d[i]=Math.random()*2-1;
+    const s=ctx.createBufferSource(),hp=ctx.createBiquadFilter(),c=ctx.createGain(); s.buffer=b; hp.type='highpass'; hp.frequency.value=2000;
+    c.gain.setValueAtTime(1.5,when); c.gain.exponentialRampToValueAtTime(.0001,when+.03); s.connect(hp); hp.connect(c); c.connect(master); s.start(when);
+    [[1568,.03],[2093,.12]].forEach(([f,at])=>{ note(f,when+at,.5,1.6); note(f*2.76,when+at,.2,.5); }); }
+  function fanfare(when){ [523.25,659.25,783.99].forEach((f,i)=>note(f,when+i*.09,.25,1.5,'triangle')); [1046.5,783.99,523.25].forEach(f=>note(f,when+.27,.9,1,'triangle')); }
+  function step(){ if(!playing)return; last=Math.max(0,Math.min(SCALE.length-1,last+Math.floor(Math.random()*5)-2)); const t=ctx.currentTime+.05;
+    note(SCALE[last],t,2.6,.5); if(Math.random()<.35)note(SCALE[last]/2,t,4.2,.32); timer=setTimeout(step,900+Math.random()*1300); }
+  return {
+    start(){ const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return; if(!ctx){ctx=new AC(); master=ctx.createGain(); master.connect(ctx.destination);}
+      if(ctx.state==='suspended')ctx.resume(); clearTimeout(timer); playing=true; master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setValueAtTime(muted?0:.16,ctx.currentTime); step(); },
+    stop(tailMs=0){ playing=false; clearTimeout(timer); if(ctx)master.gain.setValueAtTime(0,ctx.currentTime+tailMs/1000); },
+    hit(kind){ if(!playing||!ctx)return; const t=ctx.currentTime+.02; if(kind==='ok')ching(t); else if(kind==='big')fanfare(t); else knock(t); },
+    toggle(){ muted=!muted; if(ctx&&playing)master.gain.setValueAtTime(muted?0:.16,ctx.currentTime); return !muted; },
+  };
+})();
+
+/* ---------- canvas: dusk market with glowing lanterns and stalls ---------- */
+const cv=$('#cv'), g=cv.getContext('2d');
+function fit(){ const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1; cv.width=r.width*d; cv.height=r.height*d; g.setTransform(d,0,0,d,0,0); }
+function draw(now){
+  const r=cv.getBoundingClientRect(),W=r.width,H=r.height; if(!W)return;
+  const sky=g.createLinearGradient(0,0,0,H); sky.addColorStop(0,'#1a1420'); sky.addColorStop(.55,'#3a2436'); sky.addColorStop(1,'#6b3a2a');
+  g.fillStyle=sky; g.fillRect(0,0,W,H);
+  // stars
+  g.fillStyle='rgba(255,240,210,.7)'; for(let i=0;i<40;i++){ const x=(i*97)%W, y=(i*53)%(H*.4), tw=.5+.5*Math.sin(now/700+i); g.globalAlpha=tw; g.fillRect(x,y,2,2); } g.globalAlpha=1;
+  // distant stall roofs
+  g.fillStyle='#2a1c25'; for(let x=-20;x<W+40;x+=120){ g.beginPath(); g.moveTo(x,H*.62); g.lineTo(x+60,H*.52); g.lineTo(x+120,H*.62); g.closePath(); g.fill(); }
+  g.fillStyle='#231722'; g.fillRect(0,H*.62,W,H);
+  // ground
+  g.fillStyle='#2e2026'; g.fillRect(0,H*.8,W,H);
+  // lantern string
+  g.strokeStyle='#5a4350'; g.lineWidth=2; g.beginPath(); g.moveTo(0,H*.12); g.quadraticCurveTo(W/2,H*.2,W,H*.12); g.stroke();
+  const n=Math.max(4,Math.floor(W/110));
+  for(let i=0;i<=n;i++){ const t=i/n, x=W*t, y=H*.12+(H*.08)*4*t*(1-t)+12, p=.8+.2*Math.sin(now/500+i*1.7);
+    const lg=g.createRadialGradient(x,y+14,2,x,y+14,46*p); lg.addColorStop(0,'rgba(255,190,90,.55)'); lg.addColorStop(1,'rgba(255,190,90,0)');
+    g.fillStyle=lg; g.beginPath(); g.arc(x,y+14,46*p,0,7); g.fill();
+    g.fillStyle='#e8542f'; g.beginPath(); g.ellipse(x,y+14,13,16,0,0,7); g.fill();
+    g.fillStyle='#ffcf5a'; g.fillRect(x-5,y-3,10,4); g.fillRect(x-5,y+29,10,4);
+  }
 }
+function loop(now){ if($('#scrGame').hidden)return; draw(now); S.raf=requestAnimationFrame(loop); }
 
-/* ---------- 6 回家對帳：延遲回憶 (6) ---------- */
-function st6(){pick('第 6 關　回到家了，今天買了哪三樣？','recall',6,finish)}
+/* ---------- screens, messages, feedback ---------- */
+function show(id){ ['#scrIntro','#scrGame','#scrResult'].forEach(s=>$(s).hidden=s!==id); window.scrollTo(0,0); }
+function message(title,text,btn,fn,btn2,fn2){
+  $('#msg').hidden=false; $('#msgTitle').textContent=title; $('#msgText').textContent=text;
+  $('#msgBtn').textContent=btn; $('#msgBtn').onclick=()=>{ $('#msg').hidden=true; fn(); };
+  $('#msgBtn2').hidden=!btn2; $('#msgBtn2').textContent=btn2||''; $('#msgBtn2').onclick=()=>{ $('#msg').hidden=true; fn2(); };
+}
+function card(html){ $('#q').innerHTML='<div class="qcard">'+html+'</div>'; $('#q').scrollTop=0; return $('#q').firstElementChild; }
+function fb(text,ms){ $('#fb').textContent=text; clearTimeout(S.fbT); S.fbT=setTimeout(()=>$('#fb').textContent='',ms||900); }
+function lock(c){ c.querySelectorAll('button').forEach(b=>b.disabled=true); }
+function setPts(n){ const p=$('#pts'); p.classList.remove('got'); p.textContent=n?'+'+n:''; }
+function award(got,max){ S.score+=got; $('#hudScore').textContent=S.score;
+  if(got>0){ $('#pts').textContent='+'+got; $('#pts').classList.add('got'); Music.hit(got>=max&&max>=4?'big':'ok'); fb(got>=max?'全對！':'答對一些！'); }
+  else { Music.hit('miss'); fb('沒關係，下一關'); } }
 
-/* ---------- 結果 ---------- */
-function finish(){clearInterval(timer);
-  const total=S.score,recall=S.dom.recall||0,adj=total+(S.edu?1:0),sec=Math.round((Date.now()-S.t0)/1000);
-  let lv,txt;
-  if(adj>=16&&recall>=4){lv='ok';txt='目前表現正常'}
-  else if(adj>=12&&recall>=2){lv='warn';txt='建議半年後再測或追蹤'}
-  else{lv='bad';txt='建議到神經內科或記憶門診進一步評估'}
+/* ---------- station runner ---------- */
+let idx=-1, stT=0;
+function begin(){ S.phase='test'; S.score=0; S.res=[]; S.t0=performance.now(); idx=-1; $('#hudScore').textContent='0'; $('#hudPhase').textContent='正式遊戲'; nextStation(); }
+function nextStation(){ idx++; if(idx>=STATIONS.length)return finish(); const st=STATIONS[idx];
+  $('#hudCount').textContent=`第 ${idx+1} / ${STATIONS.length} 關`; setPts(st[3]); stT=performance.now(); RUN[st[0]](); }
+function done(got,extra){ const st=STATIONS[idx]; const ms=performance.now()-stT; S.res.push(Object.assign({key:st[0],name:st[1],dom:st[2],got,max:st[3],ms},extra||{})); award(got,st[3]); setTimeout(nextStation,1100); }
+
+function pickThree(title,opts,after){
+  const chosen=new Set();
+  const c=card(`<h2>${title}</h2><p class="note" style="font-size:16px">點選三樣，選好按「確定」。</p>
+  <div class="grid3">${opts.map((i,k)=>`<button class="big item" data-k="${k}"><span class="pic">${i[0]}</span>${i[1]}</button>`).join('')}</div>
+  <button class="big primary" id="ok" disabled>確定</button>`);
+  c.querySelectorAll('.item').forEach(b=>b.onclick=()=>{ const k=+b.dataset.k;
+    if(chosen.has(k)){chosen.delete(k);b.classList.remove('sel')} else if(chosen.size<3){chosen.add(k);b.classList.add('sel')}
+    c.querySelector('#ok').disabled=chosen.size!==3; });
+  c.querySelector('#ok').onclick=()=>{ lock(c); let hit=0;
+    c.querySelectorAll('.item').forEach(b=>{ const i=opts[+b.dataset.k], ok=PLAN.list.includes(i);
+      if(chosen.has(+b.dataset.k))b.classList.add(ok?'right':'wrong'); if(ok){ b.classList.add('right'); if(chosen.has(+b.dataset.k))hit++; } });
+    after(hit); };
+}
+const RUN={
+  imm(){ const c=card(`<h2>第 1 關　今天要買這三樣</h2><p class="note" style="font-size:16px">請記住它們，等一下回到家要對帳。</p>
+    <div class="grid3">${PLAN.list.map(i=>`<div class="item show"><span class="pic">${i[0]}</span>${i[1]}</div>`).join('')}</div><div class="bar"><i id="b"></i></div>`);
+    const b=c.querySelector('#b'); requestAnimationFrame(()=>{ b.style.transition='width 6s linear'; b.style.width='100%'; });
+    setTimeout(()=>{ stT=performance.now(); pickThree('第 1 關　剛剛要買哪三樣？',PLAN.immOpts,hit=>done(hit,{hit})); },6000); },
+  ori(){ const now=new Date(); let got=0;
+    const c=card(`<h2>第 2 關　今天是星期幾？</h2><div class="grid2">${PLAN.dayOrder.map(k=>`<button class="big" data-k="${k}">星期${DAYS[k]}</button>`).join('')}</div>`);
+    c.querySelectorAll('button').forEach(b=>b.onclick=()=>{ lock(c); const ok=+b.dataset.k===now.getDay(); b.classList.add(ok?'right':'wrong'); if(ok)got++;
+      setTimeout(()=>{ const m=now.getMonth()+1, opts=[m].concat(PLAN.monthShift.map(s=>((m-1+s)%12)+1)), ord=PLAN.monthOrder.map(i=>opts[i]);
+        const c2=card(`<h2>第 2 關　現在是幾月？</h2><div class="grid2">${ord.map(x=>`<button class="big" data-k="${x}">${x} 月</button>`).join('')}</div>`);
+        c2.querySelectorAll('button').forEach(b2=>b2.onclick=()=>{ lock(c2); const ok2=+b2.dataset.k===m; b2.classList.add(ok2?'right':'wrong'); if(ok2)got++; done(got,{day:ok?1:0,month:ok2?1:0}); }); },700); }); },
+  calc(){ let got=0, errs=0; const ask=i=>{ if(i===2)return done(got,{errors:errs}); const q=PLAN.change[i];
+      const c=card(`<h2>第 3 關　找零錢（${i+1}/2）</h2><p>拿 <b>${q.pay} 元</b> 買了 <b>${q.cost} 元</b> 的菜，<br>老闆要找多少錢？</p>
+      <div class="grid2">${q.opts.map(x=>`<button class="big" data-k="${x}">${x} 元</button>`).join('')}</div>`);
+      c.querySelectorAll('button').forEach(b=>b.onclick=()=>{ lock(c); const ok=+b.dataset.k===q.ans; b.classList.add(ok?'right':'wrong'); if(ok)got+=2; else errs++; setTimeout(()=>ask(i+1),700); }); }; ask(0); },
+  clock(){ const {h,m,opts}=PLAN.clock;
+    const c=card(`<h2>第 4 關　哪一個鐘是 ${h} 點 ${String(m).padStart(2,'0')} 分？</h2><div class="clockgrid">${opts.map((o,k)=>`<button class="big" data-k="${k}">${clockSVG(o[0],o[1])}</button>`).join('')}</div>`);
+    c.querySelectorAll('button').forEach(b=>b.onclick=()=>{ lock(c); const ok=opts[+b.dataset.k][2]===1; b.classList.add(ok?'right':'wrong'); done(ok?2:0); }); },
+  seq(){ let want=1, err=0;
+    const c=card(`<h2>第 5 關　排隊號碼牌</h2><p class="note" style="font-size:16px">請依照 1、2、3… 的順序，從 1 點到 6。</p>
+    <div class="seq">${PLAN.seq.map((p,k)=>`<button data-n="${k+1}" style="left:${p[0]}%;top:${p[1]}%">${k+1}</button>`).join('')}</div>`);
+    c.querySelectorAll('.seq button').forEach(b=>b.onclick=()=>{ const n=+b.dataset.n;
+      if(n===want){ b.classList.add('right'); b.disabled=true; want++; if(want>6){ done(err===0?3:err<=2?2:1,{errors:err}); } }
+      else { err++; b.classList.add('wrong'); setTimeout(()=>b.classList.remove('wrong'),400); } }); },
+  recall(){ pickThree('第 6 關　回到家了，今天買了哪三樣？',PLAN.recallOpts,hit=>done(hit*2,{hit})); },
+};
+function clockSVG(h,m){ const ha=(h%12+m/60)*30, ma=m*6; const P=(a,r)=>{ const t=(a-90)*Math.PI/180; return [60+r*Math.cos(t),60+r*Math.sin(t)].map(v=>v.toFixed(1)); };
+  let s=''; for(let i=0;i<12;i++){ const [x1,y1]=P(i*30,50),[x2,y2]=P(i*30,55); s+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="currentColor" stroke-width="2"/>`; }
+  [12,3,6,9].forEach((n,i)=>{ const [x,y]=P(i*90,42); s+=`<text x="${x}" y="${+y+5}" font-size="13" text-anchor="middle" fill="currentColor" font-weight="700">${n}</text>`; });
+  const [hx,hy]=P(ha,30),[mx,my]=P(ma,46);
+  return `<svg viewBox="0 0 120 120" aria-label="時鐘"><circle cx="60" cy="60" r="57" fill="#fff8e8" stroke="currentColor" stroke-width="3"/><g style="color:#2a1d08">${s}
+  <line x1="60" y1="60" x2="${hx}" y2="${hy}" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><line x1="60" y1="60" x2="${mx}" y2="${my}" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><circle cx="60" cy="60" r="4" fill="currentColor"/></g></svg>`; }
+
+/* ---------- practice ---------- */
+function practice(){ S.phase='practice'; $('#hudPhase').textContent='練習'; $('#hudCount').textContent=''; setPts(0);
+  const c=card(`<h2>練習　請點一下「蘋果」</h2><div class="grid3">${[['🍎','蘋果'],['🐟','魚'],['🍞','麵包']].map((i,k)=>`<button class="big item" data-k="${k}"><span class="pic">${i[0]}</span>${i[1]}</button>`).join('')}</div>`);
+  c.querySelectorAll('button').forEach(b=>b.onclick=()=>{ lock(c); const ok=b.dataset.k==='0'; b.classList.add(ok?'right':'wrong'); Music.hit(ok?'ok':'miss'); fb(ok?'就是這樣！':'要點蘋果喔');
+    setTimeout(()=>message('練習完成！','接下來是正式遊戲，共 6 關，約 2 到 3 分鐘。答對會加到總分。','開始正式遊戲',begin),1200); }); }
+
+/* ---------- result ---------- */
+function judge(){
+  const total=S.score, recall=(S.res.find(r=>r.key==='recall')||{}).got||0, adj=total+(S.edu?1:0);
+  let lv,txt; if(adj>=16&&recall>=4){lv='ok';txt='目前表現正常'} else if(adj>=12&&recall>=2){lv='warn';txt='建議半年後再測或追蹤'} else {lv='bad';txt='建議到神經內科或記憶門診進一步評估'}
   const prob=Math.round(100/(1+Math.exp(1.0*(adj-13))));
-  const r={d:new Date().toISOString(),name:S.name,age:S.age,edu:S.edu,total,adj,recall,dom:S.dom,sec,seqMs:S.seqMs,seqErr:S.seqErr,lv,prob};
-  save(r);
-  const D=[['採買清單（即時記憶）',S.dom.imm,3],['今天幾號（定向感）',S.dom.ori,2],['找零錢（計算）',S.dom.calc,4],['看時鐘（視覺空間）',S.dom.clock,2],['排隊號碼（執行功能）',S.dom.seq,3],['回家對帳（延遲回憶）',recall,6]];
-  const c=view(`<h2>採買完成！</h2>
-  <div class="score">${total}<small> / 20${S.edu?'（學歷調整後 '+adj+'）':''}</small></div>
-  <div><span class="pill ${lv}">${txt}</span></div>
-  <table>${D.map(x=>`<tr><td>${x[0]}</td><td>${x[1]||0} / ${x[2]}</td></tr>`).join('')}
-  <tr><td>總用時</td><td>${fmt(sec*1000)}</td></tr><tr><td>號碼牌用時 / 點錯</td><td>${(S.seqMs/1000).toFixed(1)} 秒 / ${S.seqErr} 次</td></tr></table>
-  <p class="muted">需要進一步腦健康評估的可能性（趨勢推估）：<b>${prob}%</b></p>
-  <div class="meter"><i style="left:${prob}%"></i></div>
-  <p class="muted" style="font-size:14px">依總分以邏輯斯曲線推估，尚未經臨床校正；延遲回憶偏低會單獨降級。若有疑慮請以專業評估為準。</p>
-  <div class="row"><button id="again">再玩一次</button><button id="recs">查看紀錄</button></div>
-  <button id="copy">複製結果文字</button>`);
-  c.querySelector('#again').onclick=start;c.querySelector('#recs').onclick=records;
-  c.querySelector('#copy').onclick=()=>{const t=`市場採買日 ${r.d.slice(0,10)} ${r.name} ${r.age||''}歲 總分${total}/20 調整後${adj} 延遲回憶${recall}/6 ${txt} 可能性${prob}% 用時${sec}秒`;
-    navigator.clipboard?.writeText(t).then(()=>toast('已複製')).catch(()=>{toast('請長按選取');c.querySelector('#copy').textContent=t})};
+  return {total,recall,adj,lv,txt,prob,sec:Math.round((performance.now()-S.t0)/1000)};
 }
-function load(){try{return JSON.parse(localStorage.getItem('market-rec')||'[]')}catch(e){return[]}}
-function save(r){try{const a=load();a.unshift(r);localStorage.setItem('market-rec',JSON.stringify(a.slice(0,200)))}catch(e){}}
-function records(){const a=load();$('#hud').hidden=true;
-  const c=view(`<h2>過去紀錄</h2><p class="muted">只存在這支手機或電腦的瀏覽器裡。</p>
-  <table>${a.map(r=>`<tr><td>${r.d.slice(5,10)}　${r.name}</td><td><span class="pill ${r.lv}" style="font-size:14px;padding:2px 10px">${r.adj}/20</span></td></tr>`).join('')||'<tr><td>還沒有紀錄</td><td></td></tr>'}</table>
-  <div class="row"><button class="primary" id="back">回首頁</button>${a.length?'<button id="clr">清除全部紀錄</button>':''}</div>`);
-  c.querySelector('#back').onclick=start;
-  const k=c.querySelector('#clr');if(k)k.onclick=()=>{if(k.dataset.c){try{localStorage.removeItem('market-rec')}catch(e){}records()}else{k.dataset.c=1;k.textContent='再按一次確認清除'}};
+function chart(){ return '<div class="bars">'+S.res.map(r=>`<div class="brow"><span>${r.name}<small>${r.dom}</small></span><div class="btrack"><i style="width:${100*r.got/r.max}%;background:${r.got===r.max?'var(--ok)':r.got?'var(--glow)':'var(--bad)'}"></i></div><b>${r.got}/${r.max}</b></div>`).join('')+'</div>'; }
+function finish(){ S.phase='done'; Music.stop(1200); cancelAnimationFrame(S.raf); const j=judge(); save(j); renderResult(j); }
+function renderResult(j){
+  const who=[S.code&&`代號 ${esc(S.code)}`,S.age&&`${esc(S.age)} 歲`,S.edu?'國小或以下':''].filter(Boolean).join('・')||'未填受測資料';
+  const seq=S.res.find(r=>r.key==='seq')||{};
+  const el=$('#scrResult');
+  el.innerHTML=`
+    <h1>本次得分 ${j.total} / ${MAX}<span>.</span></h1>
+    <p class="note">${who}・${new Date().toLocaleString('zh-TW')}・用時 ${fmt(j.sec*1000)}</p>
+    <div class="panel"><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><span class="pill ${j.lv}">${j.txt}</span><span class="note">學歷調整後 ${j.adj} 分，延遲回憶 ${j.recall} / 6</span></div>
+      <p class="note" style="margin-top:10px">需要進一步腦健康評估的可能性（趨勢推估）：<b style="color:var(--ink);font-size:18px">${j.prob}%</b></p>
+      <div class="meter"><i style="left:${j.prob}%"></i></div></div>
+    <div class="panel"><h3>各關得分</h3>${chart()}</div>
+    <div class="panel"><h3>原始數據</h3><div class="tablewrap"><table>
+      <thead><tr><th>關卡</th><th>能力</th><th class="v">得分</th><th class="v">用時</th><th class="v">備註</th></tr></thead>
+      <tbody>${S.res.map(r=>`<tr><td>${r.name}</td><td>${r.dom}</td><td class="v">${r.got} / ${r.max}</td><td class="v">${(r.ms/1000).toFixed(1)} 秒</td><td class="v">${r.errors!=null?'點錯 '+r.errors+' 次':r.hit!=null?'選對 '+r.hit+' 樣':r.day!=null?'星期'+(r.day?'對':'錯')+'・月份'+(r.month?'對':'錯'):''}</td></tr>`).join('')}</tbody>
+    </table></div></div>
+    <div class="warnbox">${LABEL}。門檻與「可能性」以邏輯斯曲線推估，尚未經臨床校正；延遲回憶偏低會單獨降級。若有疑慮請以專業評估為準。</div>
+    <div class="btns"><button class="primary" type="button" id="btnAgain">再測一次</button><button type="button" id="btnCsv">下載 CSV</button><button type="button" id="btnRecs">過去紀錄</button></div>`;
+  show('#scrResult');
+  $('#btnAgain').onclick=()=>show('#scrIntro');
+  $('#btnRecs').onclick=records;
+  $('#btnCsv').onclick=()=>{ const q=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
+    const rows=[['code','age','edu_low','date','station','domain','score','max','ms','errors','hit','total','adjusted','recall','level','prob'].join(',')];
+    S.res.forEach(r=>rows.push([q(S.code),q(S.age),S.edu,q(new Date().toISOString()),r.key,q(r.dom),r.got,r.max,Math.round(r.ms),r.errors==null?'':r.errors,r.hit==null?'':r.hit,j.total,j.adj,j.recall,j.lv,j.prob].join(',')));
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['﻿'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'}));
+    a.download=`market_day_${S.code||'anon'}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); };
 }
-start();
+function load(){ try{ return JSON.parse(localStorage.getItem('market-rec')||'[]'); }catch(e){ return []; } }
+function save(j){ try{ const a=load(); a.unshift({d:new Date().toISOString(),code:S.code,age:S.age,edu:S.edu,total:j.total,adj:j.adj,recall:j.recall,lv:j.lv,prob:j.prob,sec:j.sec,res:S.res.map(r=>[r.key,r.got,Math.round(r.ms)])}); localStorage.setItem('market-rec',JSON.stringify(a.slice(0,200))); }catch(e){} }
+function records(){ const a=load(); const el=$('#scrResult');
+  el.innerHTML=`<h1>過去紀錄<span>.</span></h1><p class="note">只存在這台裝置的瀏覽器裡，共 ${a.length} 筆。</p>
+  <div class="panel"><div class="tablewrap"><table><thead><tr><th>日期</th><th>代號</th><th class="v">年齡</th><th class="v">總分</th><th class="v">延遲回憶</th><th>判讀</th></tr></thead>
+  <tbody>${a.map(r=>`<tr><td>${r.d.slice(0,10)}</td><td>${esc(r.code||'—')}</td><td class="v">${esc(r.age||'—')}</td><td class="v">${r.adj} / ${MAX}</td><td class="v">${r.recall}</td><td><span class="pill ${r.lv}" style="font-size:13px;padding:2px 10px">${r.lv==='ok'?'正常':r.lv==='warn'?'追蹤':'評估'}</span></td></tr>`).join('')||'<tr><td colspan="6">還沒有紀錄</td></tr>'}</tbody></table></div></div>
+  <div class="btns"><button class="primary" type="button" id="btnHome">回首頁</button>${a.length?'<button type="button" id="btnClr">清除全部紀錄</button>':''}</div>`;
+  show('#scrResult'); $('#btnHome').onclick=()=>show('#scrIntro');
+  const k=$('#btnClr'); if(k)k.onclick=()=>{ if(k.dataset.c){ try{localStorage.removeItem('market-rec')}catch(e){} records(); } else { k.dataset.c=1; k.textContent='再按一次確認清除'; } };
+}
+function abort(){ Music.stop(); cancelAnimationFrame(S.raf); S.phase='idle'; show('#scrIntro'); }
+
+/* ---------- events ---------- */
+$('#form').addEventListener('submit',e=>{ e.preventDefault();
+  S.code=$('#inCode').value.trim(); S.age=$('#inAge').value.trim(); S.edu=+$('#inEdu').value;
+  show('#scrGame'); fit(); Music.start(); cancelAnimationFrame(S.raf); S.raf=requestAnimationFrame(loop); $('#q').innerHTML=''; setPts(0);
+  message('先來練習','看到題目，用手指點畫面上的大按鈕作答。先試一題。','練習',practice,'直接開始正式遊戲',begin); });
+$('#btnQuit').onclick=abort;
+$('#btnMusic').onclick=e=>{ e.currentTarget.textContent=Music.toggle()?'♪ 開':'♪ 關'; e.currentTarget.blur(); };
+window.addEventListener('resize',()=>{ if(!$('#scrGame').hidden)fit(); });
+(function(){ const n=load().length; if(n){ const b=document.createElement('button'); b.type='button'; b.textContent=`過去紀錄（${n}）`; b.onclick=records; $('#introBtns').appendChild(b); } })();
 })();
 </script>
 </body>
-
 </html>
