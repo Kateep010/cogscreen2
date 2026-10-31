@@ -93,9 +93,9 @@ svg{width:100%;height:auto;display:block}
     <div class="fields">
       <label class="field">受測代號<input id="inCode" maxlength="24" placeholder="例如：A001" autocomplete="off" required></label>
       <label class="field">年齡<input id="inAge" type="number" min="3" max="110" placeholder="歲" required inputmode="numeric"></label>
-      <label class="field">教育程度<select id="inEdu"><option value="0">國中以上</option><option value="1">國小或以下</option></select></label>
+      <label class="field">教育程度<select id="inEdu" required><option value="" selected disabled>請選擇</option><option value="0">國中以上</option><option value="1">國小或以下</option></select></label>
     </div>
-    <p class="note" style="margin-top:6px">受測代號與年齡為必填，沒填不能開始。</p>
+    <p class="note" style="margin-top:6px">三項皆為必填，沒填不能開始。</p>
   </form>
     <button class="primary" type="submit" form="form" id="btnStart" style="width:100%;font-size:26px;padding:16px 20px">▶ 開始練習</button>
   <div class="warnbox"><b>這是研究雛型：</b>穿樹枝的時間誤差目前沒有常模，只列出原始數據；回家六關的分數與判讀門檻參考常見篩檢量表配分設計，但尚未經臨床驗證，只能看趨勢。手機與螢幕延遲會影響結果，比較時請盡量使用同一台裝置。作答資料只保存在這台裝置，不會上傳。</div>
@@ -378,9 +378,10 @@ function abort(){ Music.stop(); cancelAnimationFrame(S.raf); S.phase='idle'; S.c
 
 /* ---------- events ---------- */
 $('#form').addEventListener('submit',e=>{ e.preventDefault();
-  const code=$('#inCode').value.trim(), age=$('#inAge').value.trim(), err=$('#formErr');
-  if(!code||!age){ err.textContent=!code&&!age?'請填寫受測代號與年齡。':!code?'請填寫受測代號。':'請填寫年齡。'; err.style.display='block'; (!code?$('#inCode'):$('#inAge')).focus(); return; }
-  err.style.display='none'; S.code=code; S.age=age; S.edu=+$('#inEdu').value; S.score=0; S.timingScore=0; S.cog=[]; S.t0=performance.now(); $('#hudScore').textContent='0';
+  const code=$('#inCode').value.trim(), age=$('#inAge').value.trim(), edu=$('#inEdu').value, err=$('#formErr');
+  const missing=[!code&&'受測代號',!age&&'年齡',edu===''&&'教育程度'].filter(Boolean);
+  if(missing.length){ err.textContent='請填寫'+missing.join('、')+'。'; err.style.display='block'; (!code?$('#inCode'):!age?$('#inAge'):$('#inEdu')).focus(); return; }
+  err.style.display='none'; S.code=code; S.age=age; S.edu=+edu; S.score=0; S.timingScore=0; S.cog=[]; S.t0=performance.now(); $('#hudScore').textContent='0';
   PLAN.timing.forEach(t=>{ delete t.pressAt; t.scored=false; });
   show('#scrGame'); fit(); Music.start();
   message('先來練習','看準缺口移動的時機按下去，讓螢火蟲穿過樹枝的缺口。','練習',()=>startPhase('practice'),'直接開始正式遊戲',()=>startPhase('test')); });
