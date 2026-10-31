@@ -16,7 +16,13 @@ h1{font-size:32px;margin:0;line-height:1.2}
 h1 span{color:var(--glow)}
 h3{margin:0 0 10px;font-size:17px}
 p{margin:0}
-.lede{font-size:16px;color:#d6dee8}
+.hl{color:var(--glow);font-weight:800;font-size:1.15em}
+.hl.warn{color:var(--warn)}
+.steps{margin:0;padding-left:1.2em;font-size:19px;line-height:1.7;display:flex;flex-direction:column;gap:4px}
+.steps li::marker{color:var(--muted)}
+details.warnbox summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px}
+details.warnbox summary::before{content:"▸";color:var(--warn)}details.warnbox[open] summary::before{content:"▾"}
+.lede{font-size:20px;color:#d6dee8}
 .note{font-size:13px;color:var(--muted)}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
 .warnbox{background:rgba(245,165,36,.12);border:1px solid var(--warn);border-radius:12px;padding:12px 14px;font-size:14px}
@@ -86,12 +92,26 @@ svg{width:100%;height:auto;display:block}
   <header style="display:flex;flex-direction:column;gap:8px">
     <h1>螢火蟲夜行<span>.</span></h1>
     <p class="note">研究用途，不應作為診斷依據，詳情請洽專業人員</p>
-    <p class="lede">遊戲分兩段。<b>第一段「穿過樹枝」</b>：路中間有一排樹枝，缺口會上下移動，請看準時機按下去，讓螢火蟲穿過缺口，太早或太晚都會撞上樹枝。<b>第二段「一路回家」</b>：陪螢火蟲回家的路上，記三樣東西、說出今天星期幾、算找零、看時鐘、依序點號碼牌，到家再把三樣東西想起來。</p>
+    <p class="lede">陪螢火蟲回家的小遊戲，<span class="hl">約 3 分鐘</span>，分兩段。</p>
   </header>
   <div class="panel">
-    <h3>玩法</h3>
-    <p>第一段按空白鍵或點畫面作答。螢火蟲起飛後要飛一小段才到樹枝，所以要提早按。有些回合樹枝中段有雲，看不到缺口，請在心裡估算缺口何時到達。第二段用手指點畫面上的大按鈕。</p>
-    <p class="note" style="margin-top:8px">先有 2 題練習（會顯示早或晚多少），正式的穿樹枝 8 題約 35 秒，由慢到快、由寬到窄漸進，不再顯示毫秒數；接著回家 6 關約 1 分半。全程約 3 分鐘。左邊會標出這題值幾分：缺口越快、開口越小，分數越高；有雲的題目分數 10 倍。每個人的題目與順序都相同，之後的分析以「按下去早或晚幾毫秒」為主，有沒有穿過去只是當下的回饋。</p>
+    <h3>第一段　穿過樹枝（8 題）</h3>
+    <ul class="steps">
+      <li>樹枝的<span class="hl">缺口會上下移動</span>。</li>
+      <li>看準時機<span class="hl">點一下畫面</span>，螢火蟲就起飛。</li>
+      <li>螢火蟲要飛一小段才到樹枝，所以要<span class="hl warn">提早一點按</span>。</li>
+      <li>有雲擋住時看不到缺口，<span class="hl">在心裡估</span>它什麼時候到。</li>
+    </ul>
+    <p class="note">先練習 2 題，會告訴你早了或晚了多少；正式 8 題不再顯示。</p>
+  </div>
+  <div class="panel">
+    <h3>第二段　一路回家（6 關）</h3>
+    <ul class="steps">
+      <li><span class="hl">記住 3 樣東西</span>，到家要想起來。</li>
+      <li>說出今天<span class="hl">星期幾、幾月</span>。</li>
+      <li><span class="hl">算找零</span>、<span class="hl">看時鐘</span>、<span class="hl">依序點號碼 1 到 6</span>。</li>
+      <li>全部用手指<span class="hl">點大按鈕</span>作答，不用急。</li>
+    </ul>
   </div>
   <form id="form" class="panel">
     <h3>請先填受測資料，再按下方「開始」</h3>
@@ -103,7 +123,9 @@ svg{width:100%;height:auto;display:block}
     </div>
   </form>
     <button class="primary" type="submit" form="form" id="btnStart" style="width:100%;font-size:26px;padding:16px 20px">▶ 開始練習</button>
-  <div class="warnbox"><b>這是研究雛型：</b>穿樹枝以時間誤差（毫秒）為主要指標，目前沒有常模，只列出原始數據；回家六關的分數與判讀門檻參考常見篩檢量表配分設計，但尚未經臨床驗證，只能看趨勢。手機與螢幕延遲會影響結果，比較時請盡量使用同一台裝置。作答結果會同時保存在這台裝置，並寫入研究用的「腦健康快篩紀錄」試算表（只含代號、年齡、教育程度與作答數據，不含姓名）。</div>
+  <details class="warnbox"><summary><b>研究說明（施測者參考）</b></summary>
+    <p class="note" style="margin-top:8px;color:var(--ink)">穿樹枝以時間誤差（毫秒）為主要指標，缺口越快、開口越小分數越高，有雲題分數 10 倍；目前沒有常模，只列原始數據。回家六關的分數與判讀門檻參考常見篩檢量表配分設計，尚未經臨床驗證，只能看趨勢。每個人的題目與順序相同。手機與螢幕延遲會影響結果，比較時請用同一台裝置。作答結果會保存在這台裝置，並寫入研究用的「腦健康快篩紀錄」試算表（只含代號、年齡、教育程度與作答數據，不含姓名）。</p>
+  </details>
   <div class="btns" id="introBtns"></div>
 </section>
 
