@@ -79,7 +79,6 @@ svg{width:100%;height:auto;display:block}
 <section id="scrIntro" class="wrap">
   <header style="display:flex;flex-direction:column;gap:8px">
     <h1>螢火蟲夜行<span>.</span></h1>
-    <button class="primary" type="submit" form="form" id="btnStart" style="width:100%;font-size:26px;padding:16px 20px">▶ 開始</button>
     <p class="note">研究用途，不應作為診斷依據，詳情請洽專業人員</p>
     <p class="lede">遊戲分兩段。<b>第一段「穿過樹枝」</b>：路中間有一排樹枝，缺口會上下移動，請看準時機按下去，讓螢火蟲穿過缺口，太早或太晚都會撞上樹枝。<b>第二段「一路回家」</b>：陪螢火蟲回家的路上，記三樣東西、說出今天星期幾、算找零、看時鐘、依序點號碼牌，到家再把三樣東西想起來。</p>
   </header>
@@ -89,13 +88,15 @@ svg{width:100%;height:auto;display:block}
     <p class="note" style="margin-top:8px">先有 3 題練習（會顯示早或晚多少），正式的穿樹枝 9 題約 40 秒，不再顯示毫秒數；接著回家 6 關約 1 分半。全程約 3 分鐘。左邊會標出這題值幾分：缺口越快、開口越小，分數越高；有雲的題目分數 10 倍。每個人的題目順序都相同。</p>
   </div>
   <form id="form" class="panel">
-    <h3>受測資料（皆可不填）</h3>
+    <h3>請先填受測資料，再按下方「開始」</h3>
     <div class="fields">
       <label class="field">受測代號<input id="inCode" maxlength="24" placeholder="例如：A001" autocomplete="off"></label>
       <label class="field">年齡<input id="inAge" type="number" min="3" max="110" placeholder="歲"></label>
       <label class="field">教育程度<select id="inEdu"><option value="0">國中以上</option><option value="1">國小或以下</option></select></label>
     </div>
+    <p class="note" style="margin-top:6px">皆可不填，但建議至少填代號，方便之後對照紀錄。</p>
   </form>
+    <button class="primary" type="submit" form="form" id="btnStart" style="width:100%;font-size:26px;padding:16px 20px">▶ 開始練習</button>
   <div class="warnbox"><b>這是研究雛型：</b>穿樹枝的時間誤差目前沒有常模，只列出原始數據；回家六關的分數與判讀門檻參考常見篩檢量表配分設計，但尚未經臨床驗證，只能看趨勢。手機與螢幕延遲會影響結果，比較時請盡量使用同一台裝置。作答資料只保存在這台裝置，不會上傳。</div>
   <div class="btns" id="introBtns"></div>
 </section>
@@ -274,7 +275,7 @@ function press(ts){
   const crash=t.status!=='ok'||Math.abs(t.err)>tolOf(t); if(crash)S.sparkAt=ts+FLIGHT_MS; Music.flutter(crash?FLIGHT_MS:FLIGHT_MS+AFTER_MS,crash,t.fog);
 }
 function endPhase(){
-  if(S.phase==='practice'){ S.phase='between'; $('#fb').textContent=''; message('練習完成！','接下來正式開始，先穿樹枝 9 題，不會再顯示早或晚多少。','開始正式遊戲',()=>startPhase('test')); }
+  if(S.phase==='practice'){ S.phase='between'; $('#fb').textContent=''; message('練習完成！','接下來正式開始，先穿樹枝 9 題，不會再顯示早或晚多少。','開始正式遊戲',()=>startPhase('test'),'再練習一次',()=>startPhase('practice')); }
   else { S.phase='between'; $('#fb').textContent=''; message('穿過樹枝完成！','第二段：陪螢火蟲一路回家。接下來用手指點畫面上的大按鈕作答，共 6 關。','開始回家',startCog); }
 }
 
