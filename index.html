@@ -14,16 +14,16 @@ html,body{margin:0;min-height:100%;background:var(--night);color:var(--ink);font
 .wrap{max-width:720px;margin:0 auto;padding:22px 16px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
 h1{font-size:32px;margin:0;line-height:1.2}
 h1 span{color:var(--glow)}
-h3{margin:0 0 10px;font-size:17px}
+h3{margin:0 0 10px;font-size:20px}
 p{margin:0}
-.hl{color:var(--glow);font-weight:800;font-size:1.15em}
+.hl{color:var(--glow);font-weight:800;font-size:1.1em}
 .hl.warn{color:var(--warn)}
-.steps{margin:0;padding-left:1.2em;font-size:19px;line-height:1.7;display:flex;flex-direction:column;gap:4px}
+.steps{margin:0;padding:0;list-style:none;font-size:24px;line-height:1.5;display:flex;flex-direction:column;gap:10px}
 .steps li::marker{color:var(--muted)}
 details.warnbox summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px}
 details.warnbox summary::before{content:"▸";color:var(--warn)}details.warnbox[open] summary::before{content:"▾"}
-.lede{font-size:20px;color:#d6dee8}
-.note{font-size:13px;color:var(--muted)}
+.lede{font-size:24px;color:#d6dee8}
+.note{font-size:15px;color:var(--muted)}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
 .warnbox{background:rgba(245,165,36,.12);border:1px solid var(--warn);border-radius:12px;padding:12px 14px;font-size:14px}
 .fields{display:flex;flex-wrap:wrap;gap:14px}
@@ -97,26 +97,27 @@ svg{width:100%;height:auto;display:block}
   <header style="display:flex;flex-direction:column;gap:8px">
     <h1>螢火蟲夜行<span>.</span></h1>
     <p class="note">研究用途，不應作為診斷依據，詳情請洽專業人員</p>
-    <p class="lede">陪螢火蟲回家的小遊戲，<span class="hl">約 3 分鐘</span>，分兩段。</p>
+    <p class="lede">陪螢火蟲回家，<span class="hl">約 3 分鐘</span>。</p>
   </header>
   <div class="panel">
-    <h3>第一段　穿過樹枝（8 題）</h3>
+    <h3>第一段　穿過樹枝</h3>
     <ul class="steps">
-      <li>🌿 樹枝的<span class="hl">缺口會上下移動</span>。</li>
-      <li>👆 看準時機<span class="hl">點一下畫面</span>，螢火蟲就起飛。</li>
-      <li>⏱ 螢火蟲要飛一小段才到樹枝，所以要<span class="hl warn">提早一點按</span>。</li>
-      <li>☁️ 有雲擋住時看不到缺口，<span class="hl">在心裡估</span>它什麼時候到。</li>
+      <li>🌿 缺口<span class="hl">會上下動</span></li>
+      <li>👆 看準了<span class="hl">點一下畫面</span></li>
+      <li>⏱ 要<span class="hl warn">提早一點按</span></li>
+      <li>☁️ 有雲時<span class="hl">用猜的</span></li>
     </ul>
-    <p class="note">會先由電腦示範 1 題，再讓你練習 2 題（會告訴你早了或晚了多少）；正式 8 題不再顯示。</p>
+    <p class="note">電腦會先示範，再讓你練習。</p>
   </div>
   <div class="panel">
-    <h3>第二段　一路回家（6 關）</h3>
+    <h3>第二段　一路回家</h3>
     <ul class="steps">
-      <li>🧺 <span class="hl">記住 3 樣東西</span>，到家要想起來。</li>
-      <li>📅 說出今天<span class="hl">星期幾、幾月</span>。</li>
-      <li>🪙 <span class="hl">算找零</span>、🕒 <span class="hl">看時鐘</span>、🔢 <span class="hl">依序點號碼 1 到 6</span>。</li>
-      <li>✋ 全部用手指<span class="hl">點大按鈕</span>作答，不用急。</li>
-      <li>🔊 題目會<span class="hl">唸給你聽</span>，聽不清楚可以再看文字。</li>
+      <li>🧺 <span class="hl">記 3 樣東西</span></li>
+      <li>📅 說<span class="hl">星期幾、幾月</span></li>
+      <li>🪙 <span class="hl">算找零</span>　🕒 <span class="hl">看時鐘</span></li>
+      <li>🔢 <span class="hl">照順序點 1 到 6</span></li>
+      <li>✋ 都是<span class="hl">點大按鈕</span>，不用急</li>
+      <li>🔊 題目<span class="hl">會唸給你聽</span></li>
     </ul>
   </div>
   <form id="form" class="panel">
