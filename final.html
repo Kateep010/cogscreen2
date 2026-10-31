@@ -103,7 +103,7 @@ svg{width:100%;height:auto;display:block}
     </div>
   </form>
     <button class="primary" type="submit" form="form" id="btnStart" style="width:100%;font-size:26px;padding:16px 20px">▶ 開始練習</button>
-  <div class="warnbox"><b>這是研究雛型：</b>穿樹枝以時間誤差（毫秒）為主要指標，目前沒有常模，只列出原始數據；回家六關的分數與判讀門檻參考常見篩檢量表配分設計，但尚未經臨床驗證，只能看趨勢。手機與螢幕延遲會影響結果，比較時請盡量使用同一台裝置。作答結果會同時保存在這台裝置，並寫入研究用的「腦力快篩記錄」試算表（只含代號、年齡、教育程度與作答數據，不含姓名）。</div>
+  <div class="warnbox"><b>這是研究雛型：</b>穿樹枝以時間誤差（毫秒）為主要指標，目前沒有常模，只列出原始數據；回家六關的分數與判讀門檻參考常見篩檢量表配分設計，但尚未經臨床驗證，只能看趨勢。手機與螢幕延遲會影響結果，比較時請盡量使用同一台裝置。作答結果會同時保存在這台裝置，並寫入研究用的「腦健康快篩紀錄」試算表（只含代號、年齡、教育程度與作答數據，不含姓名）。</div>
   <div class="btns" id="introBtns"></div>
 </section>
 
@@ -134,7 +134,7 @@ const LEVELS={
 let LV=LEVELS.fin, SPEEDS=LV.speeds, ITIS=LV.itis, SIZES=LV.sizes; const SOFT=true;
 const tolOf=t=>SIZES[t.size]/PATH_TOP*t.dur;
 const LABEL='研究用途，不應作為診斷依據，詳情請洽專業人員';
-/* shared record sheet: Google Apps Script web app in front of the 腦力快篩記錄 spreadsheet (same endpoint as the firefly five-station game) */
+/* shared record sheet: Google Apps Script web app in front of the 腦健康快篩紀錄 spreadsheet (same endpoint as the firefly five-station game) */
 const SHEET_URL='https://script.google.com/macros/s/AKfycbzCQUiChcu5FGWJqYquAbnWkwVJgGxmZGEkHde2UbGtKypMjaDFxzF9EPxjiXURAuQeyA/exec';
 /* ===== cognitive block constants ===== */
 const ITEMS=[['🍎','蘋果'],['🐟','魚'],['🥚','雞蛋'],['🥬','青菜'],['🍞','麵包'],['🍌','香蕉'],['🧄','蒜頭'],['🍊','橘子'],['🥛','牛奶'],['🍚','白米']];
@@ -347,7 +347,7 @@ function analyze(trials){ const ok=trials.filter(t=>t.status==='ok'); const by=f
   return {trials,ok:ok.length,all:group(ok),passed:ok.filter(t=>Math.abs(t.err)<=tolOf(t)).length,miss:trials.filter(t=>t.status==='miss').length,premature:trials.filter(t=>t.status==='premature').length,
     extra:trials.reduce((s,t)=>s+t.extra,0)+S.itiExtra,speeds:SPEEDS.map(d=>({d,...by(t=>t.dur===d)})),sizes:['大','中','小'].map((label,i)=>({label,...by(t=>t.size===i)})),clear:by(t=>!t.fog),fog:by(t=>t.fog)}; }
 function judge(){ const total=S.cog.reduce((s,r)=>s+r.got,0),recall=(S.cog.find(r=>r.key==='recall')||{}).got||0,adj=total+(S.edu?1:0);
-  let lv,txt; if(adj>=16&&recall>=4){lv='ok';txt='回家六關表現正常'} else if(adj>=12&&recall>=2){lv='warn';txt='建議半年後再測或追蹤'} else {lv='bad';txt='建議到神經內科或記憶門診進一步評估'}
+  let lv,txt; if(adj>=16&&recall>=4){lv='ok';txt='回家六關表現正常'} else if(adj>=12&&recall>=2){lv='warn';txt='建議半年後再測或追蹤'} else {lv='bad';txt='建議找醫師進一步了解腦健康'}
   return {total,recall,adj,lv,txt,prob:Math.round(100/(1+Math.exp(1.0*(adj-13))))}; }
 function chart(r){ const W=700,H=220,L=48,R=10,T=12,B=26,MAX=500,n=r.trials.length; const x=i=>L+(W-L-R)*(n>1?i/(n-1):.5),y=v=>T+(H-T-B)*(1-(Math.max(-MAX,Math.min(MAX,v))+MAX)/(2*MAX)); let s='';
   [-500,-250,0,250,500].forEach(v=>{ s+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="${v?'var(--line)':'var(--muted)'}"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}</text>`; });
@@ -397,7 +397,7 @@ async function upload(rec){ let why='';
   try{ await fetch(SHEET_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(rec)}); return {ok:true,unconfirmed:true,why}; }
   catch(e){ return {ok:false,why:why+'；'+e}; } }
 function sendToSheet(rec){ const el=$('#sheetStatus'); if(!el)return; el.textContent='正在存入試算表…'; el.style.color='var(--muted)';
-  upload(rec).then(x=>{ if(x.ok&&!x.unconfirmed){ el.textContent='✓ 已存入「腦力快篩記錄」試算表'; el.style.color='var(--ok)'; }
+  upload(rec).then(x=>{ if(x.ok&&!x.unconfirmed){ el.textContent='✓ 已存入「腦健康快篩紀錄」試算表'; el.style.color='var(--ok)'; }
     else if(x.ok){ el.textContent='已送出到試算表，但這台裝置無法確認是否寫入（'+x.why+'）。請稍後到試算表核對。'; el.style.color='var(--warn)'; }
     else { el.innerHTML='存入試算表失敗：'+esc(x.why)+' <button type="button" id="btnRetry" style="padding:4px 12px;margin-left:6px">重試</button>'; el.style.color='var(--bad)'; $('#btnRetry').onclick=()=>sendToSheet(rec); } }); }
 function load(){ try{ return JSON.parse(localStorage.getItem('firefly-night-final-rec')||'[]'); }catch(e){ return []; } }
