@@ -45,6 +45,7 @@ button.primary{background:var(--glow);border-color:var(--glow);color:#1a2410;fon
 #msgText{max-width:30em}
 #pts{position:absolute;left:14px;top:22%;font-size:46px;font-weight:800;color:var(--warn);pointer-events:none;transition:transform .15s,color .15s;transform-origin:left center;z-index:2}
 #pts.got{color:var(--glow);transform:scale(1.5)}
+#stage.cog #pts{top:8px;font-size:30px}#stage.cog #pts:not(:empty)::before{font-size:12px}#stage.cog #pts.got{transform:scale(1.25)}
 #fb{position:absolute;left:0;right:0;top:14%;text-align:center;font-size:20px;font-weight:700;color:var(--glow);pointer-events:none;z-index:2}
 /* cognitive block: question cards over the same night stage */
 #q{position:absolute;inset:0;overflow:auto;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:14px;touch-action:auto;z-index:1}
@@ -301,6 +302,7 @@ function addScore(n){ S.score+=n; $('#hudScore').textContent=S.score; }
 
 /* ---------- timing block loop ---------- */
 function startPhase(phase){
+  $('#stage').classList.remove('cog');
   if(phase==='demo'){ S.phase='demo'; S.idx=-1; S.cur=null; S.itiExtra=0; $('#q').hidden=true; $('#pts').textContent=''; S.trials=[{dur:3400,fog:false,size:0,block:0,iti:900}]; $('#hudPhase').textContent='電腦示範'; $('#hudCount').textContent=''; S.nextAt=performance.now()+1200; cancelAnimationFrame(S.raf); S.raf=requestAnimationFrame(tick); Voice.say('先看電腦示範一次。注意看，螢火蟲會在缺口快到的時候起飛。'); return; }
   S.phase=phase; S.idx=-1; S.cur=null; S.itiExtra=0; $('#q').hidden=true; $('#pts').textContent='';
   S.trials=phase==='practice'?buildPractice():PLAN.timing;
@@ -343,7 +345,7 @@ function card(html,say){ const q=$('#q'); q.innerHTML='<div class="qcard">'+html
 function fb(text,msLen){ $('#fb').textContent=text; S.fbUntil=performance.now()+(msLen||900); clearTimeout(S.fbT); S.fbT=setTimeout(()=>$('#fb').textContent='',msLen||900); }
 function lock(c){ c.querySelectorAll('button').forEach(b=>b.disabled=true); }
 function homeLoop(now){ if(S.phase!=='cog')return; drawHome(now); S.raf=requestAnimationFrame(homeLoop); }
-function cogPractice(){ S.phase='cog'; S.cogIdx=-1; $('#q').hidden=false; $('#hudPhase').textContent='練習'; $('#hudCount').textContent=''; $('#pts').textContent=''; cancelAnimationFrame(S.raf); S.cogT=performance.now(); S.raf=requestAnimationFrame(homeLoop);
+function cogPractice(){ $('#stage').classList.add('cog'); S.phase='cog'; S.cogIdx=-1; $('#q').hidden=false; $('#hudPhase').textContent='練習'; $('#hudCount').textContent=''; $('#pts').textContent=''; cancelAnimationFrame(S.raf); S.cogT=performance.now(); S.raf=requestAnimationFrame(homeLoop);
   const c=card(`<h2>練習　請點一下「蘋果」</h2><p class="hint">👆 用手指點一下有蘋果的大按鈕</p><div class="grid3">${[['🍎','蘋果'],['🐟','魚'],['🍞','麵包']].map((i,k)=>`<button class="big item" data-k="${k}"><span class="pic">${i[0]}</span>${i[1]}</button>`).join('')}</div>`,'練習。請點一下蘋果。');
   c.querySelectorAll('button').forEach(b=>b.onclick=()=>{ lock(c); const ok=b.dataset.k==='0'; b.classList.add(ok?'right':'wrong'); Music.hit(ok?'ok':'miss'); fb(ok?'就是這樣！':'要點蘋果喔'); Voice.say(ok?'就是這樣，很好':'要點蘋果喔');
     setTimeout(()=>{ if(ok)startCog(); else cogPractice(); },1300); }); }
