@@ -66,6 +66,12 @@ table{width:100%;border-collapse:collapse;font-size:14px}
 th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}
 td.v,th.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 svg{width:100%;height:auto;display:block}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg label{cursor:pointer;position:relative}.seg input{position:absolute;opacity:0;width:0;height:0}
+.seg span{display:inline-block;border:1px solid var(--line);border-radius:12px;padding:8px 14px;color:var(--ink);font-size:15px;line-height:1.3}
+.seg small{display:block;font-size:12px;color:var(--muted)}
+.seg input:checked+span{background:var(--glow);border-color:var(--glow);color:#1a2410}.seg input:checked+span small{color:#3a4a1a}
+.seg input:focus-visible+span{outline:2px solid var(--glow);outline-offset:2px}
 .pill{display:inline-block;padding:4px 14px;border-radius:999px;font-weight:700;font-size:15px;color:#0d1726}
 .pill.ok{background:var(--ok)}.pill.warn{background:var(--warn)}.pill.bad{background:var(--bad);color:#fff}
 .bars{display:flex;flex-direction:column;gap:8px}
@@ -85,7 +91,7 @@ svg{width:100%;height:auto;display:block}
   <div class="panel">
     <h3>玩法</h3>
     <p>第一段按空白鍵或點畫面作答。螢火蟲起飛後要飛一小段才到樹枝，所以要提早按。有些回合樹枝中段有雲，看不到缺口，請在心裡估算缺口何時到達。第二段用手指點畫面上的大按鈕。</p>
-    <p class="note" style="margin-top:8px">先有 3 題練習（會顯示早或晚多少），正式的穿樹枝 9 題約 40 秒，不再顯示毫秒數；接著回家 6 關約 1 分半。全程約 3 分鐘。左邊會標出這題值幾分：缺口越快、開口越小，分數越高；有雲的題目分數 10 倍。每個人的題目順序都相同。</p>
+    <p class="note" style="margin-top:8px">先有 2 題練習（會顯示早或晚多少），正式的穿樹枝 8 題約 35 秒，由慢到快、由寬到窄漸進，不再顯示毫秒數；接著回家 6 關約 1 分半。全程約 3 分鐘。左邊會標出這題值幾分：缺口越快、開口越小，分數越高；有雲的題目分數 10 倍。每個人的題目與順序都相同，之後的分析以「按下去早或晚幾毫秒」為主，有沒有穿過去只是當下的回饋。</p>
   </div>
   <form id="form" class="panel">
     <h3>請先填受測資料，再按下方「開始」</h3>
@@ -95,10 +101,9 @@ svg{width:100%;height:auto;display:block}
       <label class="field">年齡<input id="inAge" type="number" min="3" max="110" placeholder="歲" required inputmode="numeric"></label>
       <label class="field">教育程度<select id="inEdu" required><option value="" selected disabled>請選擇</option><option value="0">國中以上</option><option value="1">國小或以下</option></select></label>
     </div>
-    <p class="note" style="margin-top:6px">三項皆為必填，沒填不能開始。</p>
   </form>
     <button class="primary" type="submit" form="form" id="btnStart" style="width:100%;font-size:26px;padding:16px 20px">▶ 開始練習</button>
-  <div class="warnbox"><b>這是研究雛型：</b>穿樹枝的時間誤差目前沒有常模，只列出原始數據；回家六關的分數與判讀門檻參考常見篩檢量表配分設計，但尚未經臨床驗證，只能看趨勢。手機與螢幕延遲會影響結果，比較時請盡量使用同一台裝置。作答資料只保存在這台裝置，不會上傳。</div>
+  <div class="warnbox"><b>這是研究雛型：</b>穿樹枝以時間誤差（毫秒）為主要指標，目前沒有常模，只列出原始數據；回家六關的分數與判讀門檻參考常見篩檢量表配分設計，但尚未經臨床驗證，只能看趨勢。手機與螢幕延遲會影響結果，比較時請盡量使用同一台裝置。作答資料只保存在這台裝置，不會上傳。</div>
   <div class="btns" id="introBtns"></div>
 </section>
 
@@ -118,9 +123,16 @@ svg{width:100%;height:auto;display:block}
 (() => {
 const $ = s => document.querySelector(s);
 /* ===== timing block constants (same geometry as the firefly prototype) ===== */
-const SPEEDS=[2000,2600,3400], ITIS=[250,350,450], FLIGHT_MS=300, AFTER_MS=350, SIZES=[.07,.05,.035], PATH_TOP=.43, POST_MS=560, WALL_AT=.5;
+const FLIGHT_MS=300, AFTER_MS=350, PATH_TOP=.43, POST_MS=560, WALL_AT=.5;
+/* three difficulty levels: opening sizes and gap speeds; trial list built per level */
+const LEVELS={
+  fin:{name:'整合版',speeds:[2600,3400],itis:[350,450],sizes:[.12,.09,.07],seed:20261031,n:8,
+    /* fixed graded order: slow and wide first, cloud trials interleaved, narrowest opening only once near the end */
+    trials:()=>[[3400,0,false],[3400,1,false],[2600,0,false],[3400,0,true],[2600,1,false],[2600,0,true],[2600,2,false],[3400,1,true]].map(([dur,size,fog],i)=>({dur,size,fog,block:0,iti:i%2?450:350})),
+    practice:()=>[{dur:3400,fog:false,size:0,block:0,iti:700},{dur:3400,fog:true,size:0,block:0,iti:700}]},
+};
+let LV=LEVELS.fin, SPEEDS=LV.speeds, ITIS=LV.itis, SIZES=LV.sizes; const SOFT=true;
 const tolOf=t=>SIZES[t.size]/PATH_TOP*t.dur;
-const SEED=20261031;
 const LABEL='研究用途，不應作為診斷依據，詳情請洽專業人員';
 /* ===== cognitive block constants ===== */
 const ITEMS=[['🍎','蘋果'],['🐟','魚'],['🥚','雞蛋'],['🥬','青菜'],['🍞','麵包'],['🍌','香蕉'],['🧄','蒜頭'],['🍊','橘子'],['🥛','牛奶'],['🍚','白米']];
@@ -142,9 +154,8 @@ function shuffle(a,rnd){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Mat
 
 /* fixed plan: 9 timing trials (every speed × opening once, cloud on three of them) and the cognitive materials */
 function buildPlan(){
-  const rnd=mulberry32(SEED);
-  const cells=[]; SPEEDS.forEach((dur,si)=>SIZES.forEach((_,size)=>cells.push({dur,size,fog:(si+size)%3===0,block:0})));
-  const timing=shuffle(cells,rnd).map(c=>({...c,iti:ITIS[Math.floor(rnd()*ITIS.length)]}));
+  const rnd=mulberry32(LV.seed);
+  const timing=LV.trials();
   const items=shuffle(ITEMS,rnd), list=items.slice(0,3), foil=items.slice(3,6), mk=()=>shuffle(list.concat(foil),rnd);
   const change=shuffle(CHANGE,rnd).slice(0,2).map(([pay,cost])=>({pay,cost,ans:pay-cost,opts:shuffle([pay-cost,pay-cost+10,pay-cost-5,pay-cost+3],rnd)}));
   const [h,m]=CLOCKS[Math.floor(rnd()*CLOCKS.length)];
@@ -152,32 +163,36 @@ function buildPlan(){
   const seq=shuffle([[18,18],[50,22],[82,18],[22,55],[58,52],[84,58],[30,84],[66,84]],rnd).slice(0,6);
   return {timing,list,immOpts:mk(),recallOpts:mk(),change,clock,seq,monthShift:shuffle([1,11,6],rnd),monthOrder:shuffle([0,1,2,3],rnd)};
 }
-const PLAN=buildPlan();
+let PLAN=null, TIMINGMAX=0;
 const pointsFor=t=>(SPEEDS.length-SPEEDS.indexOf(t.dur)+t.size)*(t.fog?10:1);
-const TIMINGMAX=PLAN.timing.reduce((s,t)=>s+pointsFor(t),0);
-const buildPractice=()=>[{dur:3400,fog:false,size:0,block:0,iti:700},{dur:2600,fog:false,size:1,block:0,iti:700},{dur:2600,fog:true,size:0,block:0,iti:700}];
+const buildPractice=()=>LV.practice();
 
 /* ---------- music: soft pentatonic notes at irregular intervals, no steady beat ---------- */
 const Music=(()=>{
   const SCALE=[261.63,293.66,329.63,392,440,523.25,587.33,659.25];
-  let ctx=null,master=null,timer=0,playing=false,muted=false,last=3;
-  function note(freq,when,len,vol,type='sine'){ const o=ctx.createOscillator(),e=ctx.createGain(); o.type=type; o.frequency.value=freq;
-    e.gain.setValueAtTime(0,when); e.gain.linearRampToValueAtTime(vol,when+Math.min(.5,len*.25)); e.gain.exponentialRampToValueAtTime(.0001,when+len); o.connect(e); e.connect(master); o.start(when); o.stop(when+len+.05); }
-  function knock(when){ const o=ctx.createOscillator(),e=ctx.createGain(); o.type='triangle'; o.frequency.setValueAtTime(260,when); o.frequency.exponentialRampToValueAtTime(110,when+.12);
-    e.gain.setValueAtTime(0,when); e.gain.linearRampToValueAtTime(3,when+.005); e.gain.exponentialRampToValueAtTime(.0001,when+.18); o.connect(e); e.connect(master); o.start(when); o.stop(when+.2); }
+  let ctx=null,master=null,timer=0,playing=false,muted=false,last=3,pad=null;
+  function note(freq,when,len,vol,type='sine',atk){ const o=ctx.createOscillator(),e=ctx.createGain(); o.type=type; o.frequency.value=freq;
+    e.gain.setValueAtTime(0,when); e.gain.linearRampToValueAtTime(vol,when+(atk||Math.min(.5,len*.25))); e.gain.exponentialRampToValueAtTime(.0001,when+len); o.connect(e); e.connect(master); o.start(when); o.stop(when+len+.05); }
+  function knock(when){ const o=ctx.createOscillator(),e=ctx.createGain();
+    if(SOFT){ o.type='sine'; o.frequency.setValueAtTime(160,when); o.frequency.exponentialRampToValueAtTime(80,when+.2); e.gain.setValueAtTime(0,when); e.gain.linearRampToValueAtTime(.8,when+.02); e.gain.exponentialRampToValueAtTime(.0001,when+.3); }
+    else { o.type='triangle'; o.frequency.setValueAtTime(260,when); o.frequency.exponentialRampToValueAtTime(110,when+.12); e.gain.setValueAtTime(0,when); e.gain.linearRampToValueAtTime(3,when+.005); e.gain.exponentialRampToValueAtTime(.0001,when+.18); }
+    o.connect(e); e.connect(master); o.start(when); o.stop(when+.32); }
   function ching(when){ const n=Math.floor(ctx.sampleRate*.03),b=ctx.createBuffer(1,n,ctx.sampleRate),d=b.getChannelData(0); for(let i=0;i<n;i++)d[i]=Math.random()*2-1;
-    const s=ctx.createBufferSource(),hp=ctx.createBiquadFilter(),c=ctx.createGain(); s.buffer=b; hp.type='highpass'; hp.frequency.value=2000; c.gain.setValueAtTime(1.5,when); c.gain.exponentialRampToValueAtTime(.0001,when+.03);
-    s.connect(hp); hp.connect(c); c.connect(master); s.start(when); [[1568,.03],[2093,.12]].forEach(([f,at])=>{ note(f,when+at,.5,1.6); note(f*2.76,when+at,.2,.5); }); }
-  function fanfare(when){ [523.25,659.25,783.99].forEach((f,i)=>note(f,when+i*.09,.25,1.5,'triangle')); [1046.5,783.99,523.25].forEach(f=>note(f,when+.27,.9,1,'triangle')); }
-  function step(){ if(!playing)return; last=Math.max(0,Math.min(SCALE.length-1,last+Math.floor(Math.random()*5)-2)); const t=ctx.currentTime+.05; note(SCALE[last],t,2.6,.5); if(Math.random()<.35)note(SCALE[last]/2,t,4.2,.32); timer=setTimeout(step,900+Math.random()*1300); }
+    const s=ctx.createBufferSource(),hp=ctx.createBiquadFilter(),c=ctx.createGain(); s.buffer=b; hp.type='highpass'; hp.frequency.value=2000; c.gain.setValueAtTime(SOFT?.3:1.5,when); c.gain.exponentialRampToValueAtTime(.0001,when+.03);
+    s.connect(hp); hp.connect(c); c.connect(master); s.start(when); if(SOFT)[[784,.03],[1046.5,.12]].forEach(([f,at])=>note(f,when+at,.7,.6)); else [[1568,.03],[2093,.12]].forEach(([f,at])=>{ note(f,when+at,.5,1.6); note(f*2.76,when+at,.2,.5); }); }
+  function fanfare(when){ if(SOFT){ [392,493.88,587.33].forEach((f,i)=>note(f,when+i*.1,.3,.6,'triangle')); [783.99,587.33,392].forEach(f=>note(f,when+.3,1.1,.4,'triangle')); }
+    else { [523.25,659.25,783.99].forEach((f,i)=>note(f,when+i*.09,.25,1.5,'triangle')); [1046.5,783.99,523.25].forEach(f=>note(f,when+.27,.9,1,'triangle')); } }
+  function step(){ if(!playing)return; last=Math.max(0,Math.min(SCALE.length-1,last+Math.floor(Math.random()*5)-2)); const t=ctx.currentTime+.05; if(SOFT){ note(SCALE[last]/2,t,4,.45,'sine',.9); if(Math.random()<.35)note(SCALE[last]/4,t,5.5,.3,'sine',1.2); timer=setTimeout(step,1300+Math.random()*1700); }
+    else { note(SCALE[last],t,2.6,.5); if(Math.random()<.35)note(SCALE[last]/2,t,4.2,.32); timer=setTimeout(step,900+Math.random()*1300); } }
   return {
     start(){ const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return; if(!ctx){ ctx=new AC(); master=ctx.createGain(); master.connect(ctx.destination); }
-      if(ctx.state==='suspended')ctx.resume(); clearTimeout(timer); playing=true; master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setValueAtTime(muted?0:.16,ctx.currentTime); step(); },
+      if(ctx.state==='suspended')ctx.resume(); clearTimeout(timer); playing=true;
+      if(!pad){ const o=ctx.createOscillator(); pad=ctx.createGain(); o.type='sine'; o.frequency.value=98; o.connect(pad); pad.connect(master); o.start(); } pad.gain.value=SOFT?.05:0; master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setValueAtTime(muted?0:.16,ctx.currentTime); step(); },
     stop(tailMs=0){ playing=false; clearTimeout(timer); if(ctx)master.gain.setValueAtTime(0,ctx.currentTime+tailMs/1000); },
     flutter(msLen,crash,fog){ if(!playing)return; const t=ctx.currentTime,len=msLen/1000; if(crash)knock(t+len); else if(fog)fanfare(t+len); else ching(t+len);
       const o=ctx.createOscillator(),f=ctx.createBiquadFilter(),e=ctx.createGain(),trem=ctx.createGain(),lfo=ctx.createOscillator(),depth=ctx.createGain();
-      o.type='sawtooth'; o.frequency.setValueAtTime(190,t); o.frequency.linearRampToValueAtTime(250,t+len); f.type='lowpass'; f.frequency.value=1300; lfo.type='sine'; lfo.frequency.value=34; depth.gain.value=.5; trem.gain.value=.5;
-      e.gain.setValueAtTime(0,t); e.gain.linearRampToValueAtTime(.9,t+.03); e.gain.setValueAtTime(.9,t+Math.max(.03,len-.05)); e.gain.linearRampToValueAtTime(0,t+len);
+      o.type=SOFT?'triangle':'sawtooth'; o.frequency.setValueAtTime(SOFT?170:190,t); o.frequency.linearRampToValueAtTime(SOFT?220:250,t+len); f.type='lowpass'; f.frequency.value=SOFT?900:1300; lfo.type='sine'; lfo.frequency.value=34; depth.gain.value=.5; trem.gain.value=.5;
+      const fv=SOFT?.4:.9; e.gain.setValueAtTime(0,t); e.gain.linearRampToValueAtTime(fv,t+.03); e.gain.setValueAtTime(fv,t+Math.max(.03,len-.05)); e.gain.linearRampToValueAtTime(0,t+len);
       lfo.connect(depth); depth.connect(trem.gain); o.connect(f); f.connect(trem); trem.connect(e); e.connect(master); o.start(t); lfo.start(t); o.stop(t+len+.02); lfo.stop(t+len+.02); },
     hit(kind){ if(!playing||!ctx)return; const t=ctx.currentTime+.02; if(kind==='ok')ching(t); else if(kind==='big')fanfare(t); else knock(t); },
     toggle(){ muted=!muted; if(ctx&&playing)master.gain.setValueAtTime(muted?0:.16,ctx.currentTime); return !muted; },
@@ -266,7 +281,7 @@ function tick(now){
 }
 function endTrial(now){
   const t=S.cur;
-  if(S.phase==='practice'){ $('#fb').textContent=t.status==='miss'?'沒有按到喔':t.status==='premature'?'太早按了':(Math.abs(t.err)<=tolOf(t)?'穿過去了！':'撞到樹枝了！')+(t.err<0?`（早了 ${Math.round(-t.err)} 毫秒）`:`（晚了 ${Math.round(t.err)} 毫秒）`); S.fbUntil=now+t.iti+500; }
+  if(S.phase==='practice'){ $('#fb').textContent=t.status==='miss'?(SOFT?'這次沒按到，沒關係':'沒有按到喔'):t.status==='premature'?(SOFT?'這次早了一點':'太早按了'):(Math.abs(t.err)<=tolOf(t)?'穿過去了！':(SOFT?'這次差一點':'撞到樹枝了！'))+(t.err<0?`（早了 ${Math.round(-t.err)} 毫秒）`:`（晚了 ${Math.round(t.err)} 毫秒）`); S.fbUntil=now+t.iti+500; }
   S.cur=null; $('#pts').textContent=''; S.nextAt=now+t.iti;
 }
 function press(ts){
@@ -276,7 +291,7 @@ function press(ts){
   const crash=t.status!=='ok'||Math.abs(t.err)>tolOf(t); if(crash)S.sparkAt=ts+FLIGHT_MS; Music.flutter(crash?FLIGHT_MS:FLIGHT_MS+AFTER_MS,crash,t.fog);
 }
 function endPhase(){
-  if(S.phase==='practice'){ S.phase='between'; $('#fb').textContent=''; message('練習完成！','接下來正式開始，先穿樹枝 9 題，不會再顯示早或晚多少。','開始正式遊戲',()=>startPhase('test'),'再練習一次',()=>startPhase('practice')); }
+  if(S.phase==='practice'){ S.phase='between'; $('#fb').textContent=''; message('練習完成！','接下來正式開始，先穿樹枝 '+LV.n+' 題，不會再顯示早或晚多少。','開始正式遊戲',()=>startPhase('test'),'再練習一次',()=>startPhase('practice')); }
   else { S.phase='between'; $('#fb').textContent=''; message('穿過樹枝完成！','第二段：陪螢火蟲一路回家。接下來用手指點畫面上的大按鈕作答，共 6 關。','開始回家',startCog); }
 }
 
@@ -340,11 +355,12 @@ function cogBars(){ return '<div class="bars">'+S.cog.map(r=>`<div class="brow">
 function finish(){ S.phase='done'; cancelAnimationFrame(S.raf); Music.stop(1200); const r=analyze(PLAN.timing),j=judge(); save(r,j); renderResult(r,j); }
 function renderResult(r,j){
   const row=(k,gp)=>`<tr><td>${k}</td><td class="v">${gp.n}</td><td class="v">${ms(gp.ae)}</td><td class="v">${signed(gp.ce)}</td><td class="v">${ms(gp.ve)}</td></tr>`;
-  const who=[S.code&&`代號 ${esc(S.code)}`,S.age&&`${esc(S.age)} 歲`,S.edu?'國小或以下':''].filter(Boolean).join('・')||'未填受測資料';
+  const who=[S.code&&`代號 ${esc(S.code)}`,S.age&&`${esc(S.age)} 歲`,S.edu?'國小或以下':''].filter(Boolean).join('・');
   const sec=Math.round((performance.now()-S.t0)/1000);
   $('#scrResult').innerHTML=`
     <h1>本次得分 ${S.score} / ${TIMINGMAX+COGMAX}<span>.</span></h1>
-    <p class="note">${who}・${new Date().toLocaleString('zh-TW')}・全程 ${fmt(sec)}・穿樹枝 ${S.timingScore} / ${TIMINGMAX} 分，回家 ${j.total} / ${COGMAX} 分</p>
+    <p class="note">${who}・${new Date().toLocaleString('zh-TW')}・全程 ${fmt(sec)}</p>
+    <div class="panel" style="display:flex;gap:18px;flex-wrap:wrap"><div><div class="note">穿樹枝 平均絕對誤差</div><div style="font-size:28px;font-weight:800;color:var(--glow)">${ms(r.all.ae)}</div><div class="note">有效 ${r.ok} 題・穿過 ${r.passed} / ${r.trials.length}・${S.timingScore} / ${TIMINGMAX} 分</div></div><div><div class="note">回家六關</div><div style="font-size:28px;font-weight:800;color:var(--glow)">${j.total} / ${COGMAX}</div><div class="note">學歷調整後 ${j.adj}・延遲回憶 ${j.recall} / 6</div></div></div>
     <div class="panel"><h3>第一段 穿過樹枝：每題時間誤差（原始數據）</h3>${chart(r)}
       <p class="note">0 為剛好，負值是太早，正值是太晚。黃綠色：無雲；橘色：有雲；紅點：過早按；× ：沒有按。</p></div>
     <div class="panel"><h3>時間誤差摘要</h3><div class="tablewrap"><table>
@@ -359,20 +375,20 @@ function renderResult(r,j){
     <div class="btns"><button class="primary" type="button" id="btnAgain">再測一次</button><button type="button" id="btnCsv">下載 CSV</button><button type="button" id="btnRecs">過去紀錄</button></div>`;
   show('#scrResult'); $('#btnAgain').onclick=()=>show('#scrIntro'); $('#btnRecs').onclick=records;
   $('#btnCsv').onclick=()=>{ const q=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`, d=q(new Date().toISOString());
-    const rows=[['code','age','edu_low','date','part','trial','condition','gap_ms','fog','opening','tolerance_ms','error_ms','passed','status','extra_presses','score','max','ms','errors','hit','cog_total','cog_adjusted','recall','level','prob'].join(',')];
-    r.trials.forEach((t,i)=>rows.push([q(S.code),q(S.age),S.edu,d,'timing',i+1,'',t.dur,t.fog?1:0,['large','medium','small'][t.size],tolOf(t).toFixed(0),t.err==null?'':t.err.toFixed(1),t.scored?1:0,t.status,t.extra,t.scored?pointsFor(t):0,pointsFor(t),'','','','','','','',''].join(',')));
-    S.cog.forEach((c,i)=>rows.push([q(S.code),q(S.age),S.edu,d,'cognitive',i+1,c.key,'','','','','','','','',c.got,c.max,Math.round(c.ms),c.errors==null?'':c.errors,c.hit==null?'':c.hit,j.total,j.adj,j.recall,j.lv,j.prob].join(',')));
+    const rows=[['code','age','edu_low','level','soft_audio','date','part','trial','condition','gap_ms','fog','opening','tolerance_ms','error_ms','passed','status','extra_presses','score','max','ms','errors','hit','cog_total','cog_adjusted','recall','level','prob'].join(',')];
+    r.trials.forEach((t,i)=>rows.push([q(S.code),q(S.age),S.edu,q(LV.name),SOFT?1:0,d,'timing',i+1,'',t.dur,t.fog?1:0,['large','medium','small'][t.size],tolOf(t).toFixed(0),t.err==null?'':t.err.toFixed(1),t.scored?1:0,t.status,t.extra,t.scored?pointsFor(t):0,pointsFor(t),'','','','','','','',''].join(',')));
+    S.cog.forEach((c,i)=>rows.push([q(S.code),q(S.age),S.edu,q(LV.name),SOFT?1:0,d,'cognitive',i+1,c.key,'','','','','','','','',c.got,c.max,Math.round(c.ms),c.errors==null?'':c.errors,c.hit==null?'':c.hit,j.total,j.adj,j.recall,j.lv,j.prob].join(',')));
     const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['﻿'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'})); a.download=`firefly_night_${S.code||'anon'}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); };
 }
-function load(){ try{ return JSON.parse(localStorage.getItem('firefly-night-rec')||'[]'); }catch(e){ return []; } }
-function save(r,j){ try{ const a=load(); a.unshift({d:new Date().toISOString(),code:S.code,age:S.age,edu:S.edu,score:S.score,timing:S.timingScore,ae:Math.round(r.all.ae)||null,passed:r.passed,cog:j.total,adj:j.adj,recall:j.recall,lv:j.lv,prob:j.prob}); localStorage.setItem('firefly-night-rec',JSON.stringify(a.slice(0,200))); }catch(e){} }
+function load(){ try{ return JSON.parse(localStorage.getItem('firefly-night-final-rec')||'[]'); }catch(e){ return []; } }
+function save(r,j){ try{ const a=load(); a.unshift({d:new Date().toISOString(),level:LV.name,soft:SOFT?1:0,code:S.code,age:S.age,edu:S.edu,score:S.score,timing:S.timingScore,ae:Math.round(r.all.ae)||null,passed:r.passed,cog:j.total,adj:j.adj,recall:j.recall,lv:j.lv,prob:j.prob}); localStorage.setItem('firefly-night-final-rec',JSON.stringify(a.slice(0,200))); }catch(e){} }
 function records(){ const a=load();
   $('#scrResult').innerHTML=`<h1>過去紀錄<span>.</span></h1><p class="note">只存在這台裝置的瀏覽器裡，共 ${a.length} 筆。</p>
-  <div class="panel"><div class="tablewrap"><table><thead><tr><th>日期</th><th>代號</th><th class="v">年齡</th><th class="v">穿樹枝</th><th class="v">平均誤差</th><th class="v">回家</th><th>判讀</th></tr></thead>
-  <tbody>${a.map(r=>`<tr><td>${r.d.slice(0,10)}</td><td>${esc(r.code||'—')}</td><td class="v">${esc(r.age||'—')}</td><td class="v">${r.passed} 穿過・${r.timing} 分</td><td class="v">${r.ae==null?'—':r.ae+' ms'}</td><td class="v">${r.adj} / ${COGMAX}</td><td><span class="pill ${r.lv}" style="font-size:13px;padding:2px 10px">${r.lv==='ok'?'正常':r.lv==='warn'?'追蹤':'評估'}</span></td></tr>`).join('')||'<tr><td colspan="7">還沒有紀錄</td></tr>'}</tbody></table></div></div>
+  <div class="panel"><div class="tablewrap"><table><thead><tr><th>日期</th><th>代號</th><th class="v">年齡</th><th>版本</th><th class="v">穿樹枝</th><th class="v">平均誤差</th><th class="v">回家</th><th>判讀</th></tr></thead>
+  <tbody>${a.map(r=>`<tr><td>${r.d.slice(0,10)}</td><td>${esc(r.code||'—')}</td><td class="v">${esc(r.age||'—')}</td><td>${r.level||'—'}${r.soft?'・柔':''}</td><td class="v">${r.passed} 穿過・${r.timing} 分</td><td class="v">${r.ae==null?'—':r.ae+' ms'}</td><td class="v">${r.adj} / ${COGMAX}</td><td><span class="pill ${r.lv}" style="font-size:13px;padding:2px 10px">${r.lv==='ok'?'正常':r.lv==='warn'?'追蹤':'評估'}</span></td></tr>`).join('')||'<tr><td colspan="8">還沒有紀錄</td></tr>'}</tbody></table></div></div>
   <div class="btns"><button class="primary" type="button" id="btnHome">回首頁</button>${a.length?'<button type="button" id="btnClr">清除全部紀錄</button>':''}</div>`;
   show('#scrResult'); $('#btnHome').onclick=()=>show('#scrIntro');
-  const k=$('#btnClr'); if(k)k.onclick=()=>{ if(k.dataset.c){ try{localStorage.removeItem('firefly-night-rec')}catch(e){} records(); } else { k.dataset.c=1; k.textContent='再按一次確認清除'; } };
+  const k=$('#btnClr'); if(k)k.onclick=()=>{ if(k.dataset.c){ try{localStorage.removeItem('firefly-night-final-rec')}catch(e){} records(); } else { k.dataset.c=1; k.textContent='再按一次確認清除'; } };
 }
 function abort(){ Music.stop(); cancelAnimationFrame(S.raf); S.phase='idle'; S.cur=null; show('#scrIntro'); }
 
@@ -381,8 +397,8 @@ $('#form').addEventListener('submit',e=>{ e.preventDefault();
   const code=$('#inCode').value.trim(), age=$('#inAge').value.trim(), edu=$('#inEdu').value, err=$('#formErr');
   const missing=[!code&&'受測代號',!age&&'年齡',edu===''&&'教育程度'].filter(Boolean);
   if(missing.length){ err.textContent='請填寫'+missing.join('、')+'。'; err.style.display='block'; (!code?$('#inCode'):!age?$('#inAge'):$('#inEdu')).focus(); return; }
-  err.style.display='none'; S.code=code; S.age=age; S.edu=+edu; S.score=0; S.timingScore=0; S.cog=[]; S.t0=performance.now(); $('#hudScore').textContent='0';
-  PLAN.timing.forEach(t=>{ delete t.pressAt; t.scored=false; });
+  err.style.display='none'; S.code=code; S.age=age; S.edu=+edu;
+  PLAN=buildPlan(); TIMINGMAX=PLAN.timing.reduce((s,t)=>s+pointsFor(t),0); S.score=0; S.timingScore=0; S.cog=[]; S.t0=performance.now(); $('#hudScore').textContent='0';
   show('#scrGame'); fit(); Music.start();
   message('先來練習','看準缺口移動的時機按下去，讓螢火蟲穿過樹枝的缺口。','練習',()=>startPhase('practice'),'直接開始正式遊戲',()=>startPhase('test')); });
 $('#btnQuit').onclick=abort;
