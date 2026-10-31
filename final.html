@@ -103,7 +103,7 @@ svg{width:100%;height:auto;display:block}
     </div>
   </form>
     <button class="primary" type="submit" form="form" id="btnStart" style="width:100%;font-size:26px;padding:16px 20px">▶ 開始練習</button>
-  <div class="warnbox"><b>這是研究雛型：</b>穿樹枝以時間誤差（毫秒）為主要指標，目前沒有常模，只列出原始數據；回家六關的分數與判讀門檻參考常見篩檢量表配分設計，但尚未經臨床驗證，只能看趨勢。手機與螢幕延遲會影響結果，比較時請盡量使用同一台裝置。作答資料只保存在這台裝置，不會上傳。</div>
+  <div class="warnbox"><b>這是研究雛型：</b>穿樹枝以時間誤差（毫秒）為主要指標，目前沒有常模，只列出原始數據；回家六關的分數與判讀門檻參考常見篩檢量表配分設計，但尚未經臨床驗證，只能看趨勢。手機與螢幕延遲會影響結果，比較時請盡量使用同一台裝置。作答結果會同時保存在這台裝置，並寫入研究用的「腦力快篩記錄」試算表（只含代號、年齡、教育程度與作答數據，不含姓名）。</div>
   <div class="btns" id="introBtns"></div>
 </section>
 
@@ -134,6 +134,8 @@ const LEVELS={
 let LV=LEVELS.fin, SPEEDS=LV.speeds, ITIS=LV.itis, SIZES=LV.sizes; const SOFT=true;
 const tolOf=t=>SIZES[t.size]/PATH_TOP*t.dur;
 const LABEL='研究用途，不應作為診斷依據，詳情請洽專業人員';
+/* shared record sheet: Google Apps Script web app in front of the 腦力快篩記錄 spreadsheet (same endpoint as the firefly five-station game) */
+const SHEET_URL='https://script.google.com/macros/s/AKfycbzCQUiChcu5FGWJqYquAbnWkwVJgGxmZGEkHde2UbGtKypMjaDFxzF9EPxjiXURAuQeyA/exec';
 /* ===== cognitive block constants ===== */
 const ITEMS=[['🍎','蘋果'],['🐟','魚'],['🥚','雞蛋'],['🥬','青菜'],['🍞','麵包'],['🍌','香蕉'],['🧄','蒜頭'],['🍊','橘子'],['🥛','牛奶'],['🍚','白米']];
 const DAYS=['日','一','二','三','四','五','六'];
@@ -372,14 +374,32 @@ function renderResult(r,j){
       <div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>關卡</th><th class="v">得分</th><th class="v">用時</th><th class="v">備註</th></tr></thead>
       <tbody>${S.cog.map(c=>`<tr><td>${c.name}（${c.dom}）</td><td class="v">${c.got} / ${c.max}</td><td class="v">${(c.ms/1000).toFixed(1)} 秒</td><td class="v">${c.errors!=null?'點錯 '+c.errors+' 次':c.hit!=null?'選對 '+c.hit+' 樣':c.day!=null?'星期'+(c.day?'對':'錯')+'・月份'+(c.month?'對':'錯'):''}</td></tr>`).join('')}</tbody></table></div></div>
     <div class="warnbox">${LABEL}。這是未經驗證的研究雛型：時間誤差沒有常模，不代表反應力好壞；回家六關的門檻與「可能性」以邏輯斯曲線推估，尚未經臨床校正，延遲回憶偏低會單獨降級。</div>
+    <p class="note" id="sheetStatus"></p>
     <div class="btns"><button class="primary" type="button" id="btnAgain">再測一次</button><button type="button" id="btnCsv">下載 CSV</button><button type="button" id="btnRecs">過去紀錄</button></div>`;
-  show('#scrResult'); $('#btnAgain').onclick=()=>show('#scrIntro'); $('#btnRecs').onclick=records;
+  show('#scrResult'); $('#btnAgain').onclick=()=>show('#scrIntro'); $('#btnRecs').onclick=records; sendToSheet(sheetRecord(r,j));
   $('#btnCsv').onclick=()=>{ const q=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`, d=q(new Date().toISOString());
     const rows=[['code','age','edu_low','level','soft_audio','date','part','trial','condition','gap_ms','fog','opening','tolerance_ms','error_ms','passed','status','extra_presses','score','max','ms','errors','hit','cog_total','cog_adjusted','recall','level','prob'].join(',')];
     r.trials.forEach((t,i)=>rows.push([q(S.code),q(S.age),S.edu,q(LV.name),SOFT?1:0,d,'timing',i+1,'',t.dur,t.fog?1:0,['large','medium','small'][t.size],tolOf(t).toFixed(0),t.err==null?'':t.err.toFixed(1),t.scored?1:0,t.status,t.extra,t.scored?pointsFor(t):0,pointsFor(t),'','','','','','','',''].join(',')));
     S.cog.forEach((c,i)=>rows.push([q(S.code),q(S.age),S.edu,q(LV.name),SOFT?1:0,d,'cognitive',i+1,c.key,'','','','','','','','',c.got,c.max,Math.round(c.ms),c.errors==null?'':c.errors,c.hit==null?'':c.hit,j.total,j.adj,j.recall,j.lv,j.prob].join(',')));
     const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['﻿'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'})); a.download=`firefly_night_${S.code||'anon'}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); };
 }
+function sheetRecord(r,j){ const now=new Date();
+  return { name:S.code, vname:'螢火蟲夜行 整合版', score:S.score, total:TIMINGMAX+COGMAX, band:j.txt, prob:j.prob, ts:now.getTime(), stamp:now.toLocaleString('zh-TW'),
+    age:S.age, edu_low:S.edu, cog_total:j.total, cog_adjusted:j.adj, recall:j.recall, level:j.lv, timing_score:S.timingScore, timing_max:TIMINGMAX,
+    ae_ms:Number.isFinite(r.all.ae)?Math.round(r.all.ae):null, ce_ms:Number.isFinite(r.all.ce)?Math.round(r.all.ce):null, passed:r.passed, valid:r.ok, miss:r.miss, premature:r.premature, extra:r.extra,
+    trials:r.trials.map(t=>({dur:t.dur,size:t.size,fog:t.fog?1:0,err:t.err==null?null:Math.round(t.err),status:t.status,passed:t.scored?1:0})),
+    cog:S.cog.map(c=>({key:c.key,got:c.got,max:c.max,ms:Math.round(c.ms),errors:c.errors==null?null:c.errors,hit:c.hit==null?null:c.hit})),
+    sec:Math.round((performance.now()-S.t0)/1000), ua:navigator.userAgent.slice(0,120) }; }
+async function upload(rec){ let why='';
+  try{ const res=await fetch(SHEET_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(rec)}); const t=await res.text(); let o=null; try{o=JSON.parse(t)}catch(_){}
+    if(o&&o.ok)return {ok:true}; why=o&&o.error?o.error:('HTTP '+res.status+' '+t.slice(0,60)); }
+  catch(e){ why=String(e); }
+  try{ await fetch(SHEET_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(rec)}); return {ok:true,unconfirmed:true,why}; }
+  catch(e){ return {ok:false,why:why+'；'+e}; } }
+function sendToSheet(rec){ const el=$('#sheetStatus'); if(!el)return; el.textContent='正在存入試算表…'; el.style.color='var(--muted)';
+  upload(rec).then(x=>{ if(x.ok&&!x.unconfirmed){ el.textContent='✓ 已存入「腦力快篩記錄」試算表'; el.style.color='var(--ok)'; }
+    else if(x.ok){ el.textContent='已送出到試算表，但這台裝置無法確認是否寫入（'+x.why+'）。請稍後到試算表核對。'; el.style.color='var(--warn)'; }
+    else { el.innerHTML='存入試算表失敗：'+esc(x.why)+' <button type="button" id="btnRetry" style="padding:4px 12px;margin-left:6px">重試</button>'; el.style.color='var(--bad)'; $('#btnRetry').onclick=()=>sendToSheet(rec); } }); }
 function load(){ try{ return JSON.parse(localStorage.getItem('firefly-night-final-rec')||'[]'); }catch(e){ return []; } }
 function save(r,j){ try{ const a=load(); a.unshift({d:new Date().toISOString(),level:LV.name,soft:SOFT?1:0,code:S.code,age:S.age,edu:S.edu,score:S.score,timing:S.timingScore,ae:Math.round(r.all.ae)||null,passed:r.passed,cog:j.total,adj:j.adj,recall:j.recall,lv:j.lv,prob:j.prob}); localStorage.setItem('firefly-night-final-rec',JSON.stringify(a.slice(0,200))); }catch(e){} }
 function records(){ const a=load();
