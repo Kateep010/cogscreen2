@@ -253,7 +253,7 @@ const Voice=(()=>{ let on=true, voice=null;
 /* ---------- canvas ---------- */
 const cv=$('#cv'), g=cv.getContext('2d');
 function fit(){ const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1; cv.width=r.width*d; cv.height=r.height*d; g.setTransform(d,0,0,d,0,0); }
-const BILL_W=190, BILL_H=88, POCKET_W=160;
+const BILL_W=160, BILL_H=74, POCKET_W=160;
 /* a large NT$1000 note */
 function drawBill(x,y,now,scale=1,alpha=1){
   g.save(); g.translate(x,y); g.scale(scale,scale); g.globalAlpha=alpha; g.rotate(Math.sin(now/400)*.03);
@@ -261,8 +261,8 @@ function drawBill(x,y,now,scale=1,alpha=1){
   g.fillStyle='#2f5fa8'; g.strokeStyle='#dbe6f6'; g.lineWidth=3; r(-w/2,-h/2,w,h,8); g.fill(); g.stroke();
   g.fillStyle='#4b7fcc'; r(-w/2+8,-h/2+8,w-16,h-16,6); g.fill();
   g.fillStyle='#8fb3e6'; g.beginPath(); g.arc(-w/2+40,0,20,0,7); g.fill();
-  g.fillStyle='#fff'; g.font='900 42px system-ui,"Microsoft JhengHei",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('1000',w/2-62,-4);
-  g.font='700 15px system-ui,"Microsoft JhengHei",sans-serif'; g.fillText('新臺幣 壹仟圓',w/2-62,h/2-18);
+  g.fillStyle='#fff'; g.font='900 36px system-ui,"Microsoft JhengHei",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('1000',w/2-52,-3);
+  g.font='700 15px system-ui,"Microsoft JhengHei",sans-serif'; g.fillText('新臺幣 壹仟圓',w/2-52,h/2-15);
   g.font='700 16px system-ui,sans-serif'; g.textAlign='left'; g.fillText('1000',-w/2+10,-h/2+16);
   g.restore(); g.textBaseline='alphabetic';
   function r(x,y,w,h,rad){ g.beginPath(); g.moveTo(x+rad,y); g.arcTo(x+w,y,x+w,y+h,rad); g.arcTo(x+w,y+h,x,y+h,rad); g.arcTo(x,y+h,x,y,rad); g.arcTo(x,y,x+w,y,rad); g.closePath(); }
